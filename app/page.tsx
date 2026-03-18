@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { QRCodeSVG } from 'qrcode.react'
 
 export default function Home() {
   const [eventName, setEventName] = useState('')
@@ -265,7 +266,7 @@ export default function Home() {
             {/* Input + button */}
             <div id="inputWrap" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', transition: 'border-color 0.2s', maxWidth: 400 }}>
               <input
-                placeholder="Manali Trip, Rahul's Wedding..."
+                placeholder="Manali Trip, Birthday Photos..."
                 value={eventName}
                 onChange={e => setEventName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && createEvent()}
@@ -320,35 +321,62 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center', animation: 'fadeUp 0.6s ease forwards' }}>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Event ready</p>
-          <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', marginBottom: 24 }}>{eventName}</h2>
-          <div style={{ width: '100%', maxWidth: 400, background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 16, padding: '32px 24px', marginBottom: 20 }}>
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 12 }}>Join code</p>
-            <div style={{ fontSize: 56, fontWeight: 900, letterSpacing: '0.1em', color: 'white', fontFamily: 'monospace' }}>{eventCode}</div>
+    <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center', animation: 'fadeUp 0.6s ease forwards' }}>
+      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Event ready</p>
+      <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', marginBottom: 32 }}>{eventName}</h2>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, width: '100%', maxWidth: 600, marginBottom: 20 }}>
+
+        {/* QR Code */}
+        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Scan to join</p>
+          <div style={{ background: 'white', padding: 12, borderRadius: 12 }}>
+            <QRCodeSVG
+              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join?code=${eventCode}`}
+              size={148}
+              bgColor="white"
+              fgColor="#080c14"
+              level="M"
+            />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 400 }}>
-            <button onClick={copyLink} style={{ width: '100%', padding: 14, background: copied ? 'rgba(74,222,128,0.1)' : '#3b82f6', border: copied ? '1px solid rgba(74,222,128,0.3)' : 'none', color: copied ? '#4ade80' : 'white', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 6, transition: 'all 0.2s' }}>
-              {copied ? '✓ Link Copied' : 'Copy Join Link'}
-            </button>
-            <button onClick={() => router.push(`/event/${eventId}?name=Host`)} style={{ width: '100%', padding: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'white', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 6 }}>
-              Open My Event
-            </button>
-            <button onClick={() => { setEventCode(''); setEventName(''); setEventId('') }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
-              Create another event
-            </button>
-          </div>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: 0 }}>Point camera to join instantly</p>
         </div>
-      )}
+
+      {/* Code + actions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 16, padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>Join code</p>
+          <div style={{ fontSize: 44, fontWeight: 900, letterSpacing: '0.12em', color: 'white', fontFamily: 'monospace' }}>{eventCode}</div>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: 0 }}>Type this at groopik.app/join</p>
+        </div>
+
+        <button onClick={copyLink} style={{ width: '100%', padding: 13, background: copied ? 'rgba(74,222,128,0.1)' : '#3b82f6', border: copied ? '1px solid rgba(74,222,128,0.3)' : 'none', color: copied ? '#4ade80' : 'white', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 8, transition: 'all 0.2s' }}>
+          {copied ? '✓ Link Copied' : 'Copy Join Link'}
+        </button>
+
+        <button onClick={() => router.push(`/event/${eventId}?name=Host&token=host_${eventId}`)} style={{ width: '100%', padding: 13, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'white', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 8 }}>
+          Open My Event
+        </button>
+
+        <button onClick={() => { setEventCode(''); setEventName(''); setEventId('') }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+          Create another event
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Footer */}
       <div style={{ position: 'relative', zIndex: 10, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '14px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 32 }}>
+        <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
           {['No install', 'Instant gallery', 'Share via QR'].map(t => (
             <span key={t} style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{t}</span>
           ))}
+          <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.08)' }} />
+          <span onClick={() => router.push('/terms')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}>Terms</span>
+          <span onClick={() => router.push('/privacy')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}>Privacy</span>
         </div>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>© 2025 Groopik</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>© 2026 Groopik</span>
       </div>
     </main>
   )

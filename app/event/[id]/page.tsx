@@ -44,12 +44,50 @@ function EventPageContent() {
   const uploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
+
+    // Access control checks
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif']
+    const maxSize = 15 * 1024 * 1024 // 15MB
+    const maxPhotos = 20
+
+    // Check total upload limit
+    if (photos.filter(p => p.session_token === sessionToken).length >= maxPhotos) {
+      alert(`You have reached the maximum of ${maxPhotos} photos per session.`)
+      e.target.value = ''
+      return
+    }
+
+    // Validate each file
+    const validFiles: File[] = []
+    const errors: string[] = []
+
+    for (const file of Array.from(files)) {
+      if (!allowedTypes.includes(file.type)) {
+        errors.push(`${file.name} is not a supported image format`)
+        continue
+      }
+      if (file.size > maxSize) {
+        errors.push(`${file.name} is too large (max 15MB)`)
+        continue
+      }
+      validFiles.push(file)
+    }
+
+    if (errors.length > 0) {
+      alert(`Some files were skipped:\n\n${errors.join('\n')}`)
+    }
+
+    if (validFiles.length === 0) {
+      e.target.value = ''
+      return
+    }
+
     setUploading(true)
     setUploadProgress(0)
-    const total = files.length
+    const total = validFiles.length
     let done = 0
-    for (const file of Array.from(files)) {
-      // Random string ensures duplicate files always get unique paths
+
+    for (const file of validFiles) {
       const random = Math.random().toString(36).substring(2, 8)
       const filePath = `${eventId}/${Date.now()}_${random}_${file.name}`
       const { error: uploadError } = await supabase.storage.from('photos').upload(filePath, file)
@@ -66,10 +104,10 @@ function EventPageContent() {
       done++
       setUploadProgress(Math.round((done / total) * 100))
     }
+
     fetchPhotos()
     setUploading(false)
     setUploadProgress(0)
-    // Reset input so same files can be uploaded again
     e.target.value = ''
   }
 
