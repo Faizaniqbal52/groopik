@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -11,7 +11,7 @@ function EventPageContent() {
   const eventId = params.id as string
   const guestName = searchParams.get('name') || 'Guest'
   const sessionToken = searchParams.get('token') || ''
-
+  const isHost = searchParams.get('name') === 'Host'
 
   const [event, setEvent] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
@@ -19,6 +19,9 @@ function EventPageContent() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<any | null>(null)
+  const [cancelled, setCancelled] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     fetchEvent()
@@ -31,6 +34,22 @@ function EventPageContent() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightbox(null)
+      if (e.key === 'ArrowRight' && lightbox) {
+        const idx = photos.findIndex(p => p.id === lightbox.id)
+        if (idx < photos.length - 1) setLightbox(photos[idx + 1])
+      }
+      if (e.key === 'ArrowLeft' && lightbox) {
+        const idx = photos.findIndex(p => p.id === lightbox.id)
+        if (idx > 0) setLightbox(photos[idx - 1])
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [lightbox, photos])
+
   const fetchEvent = async () => {
     const { data } = await supabase.from('events').select('*').eq('id', eventId).single()
     setEvent(data)
@@ -41,23 +60,29 @@ function EventPageContent() {
     setPhotos(data || [])
   }
 
+  const cancelUpload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      setCancelled(true)
+      setUploading(false)
+      setUploadProgress(0)
+    }
+  }
+
   const uploadPhotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Access control checks
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif']
-    const maxSize = 15 * 1024 * 1024 // 15MB
+    const maxSize = 15 * 1024 * 1024
     const maxPhotos = 20
 
-    // Check total upload limit
     if (photos.filter(p => p.session_token === sessionToken).length >= maxPhotos) {
       alert(`You have reached the maximum of ${maxPhotos} photos per session.`)
       e.target.value = ''
       return
     }
 
-    // Validate each file
     const validFiles: File[] = []
     const errors: string[] = []
 
@@ -73,34 +98,48 @@ function EventPageContent() {
       validFiles.push(file)
     }
 
-    if (errors.length > 0) {
-      alert(`Some files were skipped:\n\n${errors.join('\n')}`)
-    }
+    if (errors.length > 0) alert(`Some files were skipped:\n\n${errors.join('\n')}`)
+    if (validFiles.length === 0) { e.target.value = ''; return }
 
-    if (validFiles.length === 0) {
-      e.target.value = ''
-      return
-    }
-
+    setCancelled(false)
     setUploading(true)
     setUploadProgress(0)
+
     const total = validFiles.length
     let done = 0
 
     for (const file of validFiles) {
-      const random = Math.random().toString(36).substring(2, 8)
-      const filePath = `${eventId}/${Date.now()}_${random}_${file.name}`
-      const { error: uploadError } = await supabase.storage.from('photos').upload(filePath, file)
-      if (!uploadError) {
-        await supabase.from('photos').insert([{
-          event_id: eventId,
-          storage_path: filePath,
-          file_name: file.name,
-          file_size: file.size,
-          uploaded_by_name: guestName,
-          session_token: sessionToken
-        }])
+      if (cancelled) break
+      abortControllerRef.current = new AbortController()
+
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('eventId', eventId)
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          signal: abortControllerRef.current.signal
+        })
+
+        if (response.ok) {
+          const { url, filePath } = await response.json()
+          await supabase.from('photos').insert([{
+            event_id: eventId,
+            storage_path: filePath,
+            file_name: file.name,
+            file_size: file.size,
+            uploaded_by_name: guestName,
+            session_token: sessionToken,
+            storage_provider: 'r2',
+            public_url: url
+          }])
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') break
       }
+
       done++
       setUploadProgress(Math.round((done / total) * 100))
     }
@@ -114,15 +153,29 @@ function EventPageContent() {
   const deletePhoto = async (photo: any) => {
     if (!confirm('Delete this photo? This cannot be undone.')) return
     setDeleting(photo.id)
-    await supabase.storage.from('photos').remove([photo.storage_path])
-    await supabase.from('photos').delete().eq('id', photo.id)
-    setPhotos(prev => prev.filter(p => p.id !== photo.id))
-    setSelected(prev => { const n = new Set(prev); n.delete(photo.id); return n })
+    try {
+      if (photo.storage_provider === 'r2') {
+        await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: photo.storage_path })
+        })
+      } else {
+        await supabase.storage.from('photos').remove([photo.storage_path])
+      }
+      await supabase.from('photos').delete().eq('id', photo.id)
+      setPhotos(prev => prev.filter(p => p.id !== photo.id))
+      setSelected(prev => { const n = new Set(prev); n.delete(photo.id); return n })
+      if (lightbox?.id === photo.id) setLightbox(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+    }
     setDeleting(null)
   }
 
-  const getPhotoUrl = (path: string) => {
-    const { data } = supabase.storage.from('photos').getPublicUrl(path)
+  const getPhotoUrl = (photo: any) => {
+    if (photo.public_url) return photo.public_url
+    const { data } = supabase.storage.from('photos').getPublicUrl(photo.storage_path)
     return data.publicUrl
   }
 
@@ -143,10 +196,7 @@ function EventPageContent() {
     }
   }
 
-  const downloadAll = () => {
-    photos.forEach(photo => downloadPhoto(getPhotoUrl(photo.storage_path), photo.file_name))
-  }
-
+  const downloadAll = () => photos.forEach(p => downloadPhoto(getPhotoUrl(p), p.file_name))
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev)
@@ -155,19 +205,15 @@ function EventPageContent() {
       return next
     })
   }
-
   const selectAll = () => setSelected(new Set(photos.map(p => p.id)))
   const clearSelection = () => setSelected(new Set())
-
-  const downloadSelected = () => {
-    photos.filter(p => selected.has(p.id)).forEach(p => downloadPhoto(getPhotoUrl(p.storage_path), p.file_name))
-  }
-
+  const downloadSelected = () => photos.filter(p => selected.has(p.id)).forEach(p => downloadPhoto(getPhotoUrl(p), p.file_name))
   const shareLink = () => {
     const link = `${window.location.origin}/join?code=${event?.join_code}`
     navigator.clipboard.writeText(link)
-    alert('Link copied to clipboard!')
+    alert('Link copied!')
   }
+  const canDelete = (photo: any) => isHost || photo.session_token === sessionToken
 
   return (
     <main style={{ fontFamily: "-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif", background: '#080c14', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -175,13 +221,43 @@ function EventPageContent() {
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes photoIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-        .photo-item:hover .photo-actions{opacity:1!important;}
+        @keyframes lightboxIn{from{opacity:0}to{opacity:1}}
+        .photo-item .photo-actions{opacity:0;transition:opacity 0.2s;}
+        .photo-item:hover .photo-actions{opacity:1;}
+        .photo-item .checkbox-wrap{opacity:0;transition:opacity 0.2s;}
+        .photo-item:hover .checkbox-wrap{opacity:1;}
+        .photo-item .checkbox-wrap.checked{opacity:1;}
         .upload-btn:hover{background:rgba(59,130,246,0.1)!important;border-color:rgba(59,130,246,0.3)!important;}
         input[type=file]{display:none;}
       `}</style>
 
       <div style={{ position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(59,130,246,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.02) 1px,transparent 1px)', backgroundSize: '48px 48px', pointerEvents: 'none', zIndex: 0 }} />
       <div style={{ position: 'fixed', top: -120, right: -80, width: 480, height: 480, background: 'radial-gradient(circle,rgba(59,130,246,0.06) 0%,transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'lightboxIn 0.2s ease' }}>
+          <button onClick={e => { e.stopPropagation(); const idx = photos.findIndex(p => p.id === lightbox.id); if (idx > 0) setLightbox(photos[idx - 1]) }} style={{ position: 'absolute', left: 24, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'white', padding: '12px 16px', fontSize: 18, cursor: 'pointer', zIndex: 101 }}>←</button>
+          <img src={getPhotoUrl(lightbox)} onClick={e => e.stopPropagation()} style={{ maxWidth: '88vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 24px 80px rgba(0,0,0,0.8)' }} />
+          <button onClick={e => { e.stopPropagation(); const idx = photos.findIndex(p => p.id === lightbox.id); if (idx < photos.length - 1) setLightbox(photos[idx + 1]) }} style={{ position: 'absolute', right: 24, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'white', padding: '12px 16px', fontSize: 18, cursor: 'pointer', zIndex: 101 }}>→</button>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom,rgba(0,0,0,0.6),transparent)' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{lightbox.file_name}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Uploaded by {lightbox.uploaded_by_name || 'Unknown'}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(lightbox), lightbox.file_name) }} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: 'white', padding: '7px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
+              {canDelete(lightbox) && (
+                <button onClick={e => { e.stopPropagation(); deletePhoto(lightbox) }} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: 'rgba(255,100,100,0.9)', padding: '7px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+              )}
+              <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'white', padding: '7px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
+            </div>
+          </div>
+          <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
+            {photos.findIndex(p => p.id === lightbox.id) + 1} / {photos.length}
+          </div>
+        </div>
+      )}
 
       {/* Nav */}
       <nav style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', height: 64, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
@@ -204,9 +280,10 @@ function EventPageContent() {
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: '0.1em' }}>{event.join_code}</span>
             </div>
           )}
-          <button onClick={shareLink} style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: 'rgba(100,160,255,0.8)', padding: '7px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>
-            Share link
-          </button>
+          {isHost && (
+            <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, padding: '4px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(100,160,255,0.8)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Host</div>
+          )}
+          <button onClick={shareLink} style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: 'rgba(100,160,255,0.8)', padding: '7px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Share link</button>
         </div>
       </nav>
 
@@ -216,16 +293,13 @@ function EventPageContent() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, opacity: 0, animation: 'fadeUp 0.5s ease 0.1s forwards' }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', margin: 0, lineHeight: 1 }}>
-              {event?.name || 'Loading...'}
-            </h1>
+            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', margin: 0, lineHeight: 1 }}>{event?.name || 'Loading...'}</h1>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: '6px 0 0' }}>
               Welcome, <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{guestName}</span>
               {photos.length > 0 && <span> · {photos.length} photo{photos.length !== 1 ? 's' : ''}</span>}
             </p>
           </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <label className="upload-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'white', cursor: uploading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: uploading ? 0.6 : 1 }}>
               {uploading ? (
                 <>
@@ -247,7 +321,16 @@ function EventPageContent() {
               <input type="file" accept="image/*" multiple onChange={uploadPhotos} disabled={uploading} />
             </label>
 
-            {photos.length > 0 && selected.size === 0 && (
+            {uploading && (
+              <button onClick={cancelUpload} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,100,100,0.9)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+                Cancel
+              </button>
+            )}
+
+            {photos.length > 0 && selected.size === 0 && !uploading && (
               <button onClick={downloadAll} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -259,7 +342,7 @@ function EventPageContent() {
           </div>
         </div>
 
-        {/* Upload progress */}
+        {/* Progress bar */}
         {uploading && (
           <div style={{ marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 4, overflow: 'hidden', height: 3 }}>
             <div style={{ height: '100%', background: '#3b82f6', width: `${uploadProgress}%`, transition: 'width 0.3s ease', borderRadius: 4 }} />
@@ -268,19 +351,15 @@ function EventPageContent() {
 
         {/* Selection bar */}
         {selected.size > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, padding: '12px 16px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 10, animation: 'fadeUp 0.3s ease forwards' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, padding: '12px 16px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 13, color: 'rgba(100,160,255,0.9)', fontWeight: 600 }}>{selected.size} photo{selected.size !== 1 ? 's' : ''} selected</span>
               <button onClick={clearSelection} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Clear</button>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={selectAll} style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                Select all
-              </button>
+              <button onClick={selectAll} style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Select all</button>
               <button onClick={downloadSelected} style={{ padding: '7px 16px', background: '#3b82f6', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, color: 'white', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 Download {selected.size}
               </button>
             </div>
@@ -304,62 +383,33 @@ function EventPageContent() {
           <div style={{ columns: '4 200px', gap: 10, opacity: 0, animation: 'fadeUp 0.5s ease 0.2s forwards' }}>
             {photos.map((photo, i) => {
               const isSelected = selected.has(photo.id)
-              const isMine = photo.session_token === sessionToken
               const isDeleting = deleting === photo.id
+              const showDelete = canDelete(photo)
               return (
-                <div
-                  key={photo.id}
-                  className="photo-item"
-                  onClick={() => toggleSelect(photo.id)}
-                  style={{ breakInside: 'avoid', marginBottom: 10, borderRadius: 10, overflow: 'hidden', animation: `photoIn 0.4s ease ${i * 0.04}s both`, position: 'relative', cursor: 'pointer', outline: isSelected ? '2px solid #3b82f6' : '2px solid transparent', outlineOffset: 2, opacity: isDeleting ? 0.4 : 1, transition: 'opacity 0.2s' }}
-                >
+                <div key={photo.id} className="photo-item" style={{ breakInside: 'avoid', marginBottom: 10, borderRadius: 10, overflow: 'hidden', animation: `photoIn 0.4s ease ${i * 0.04}s both`, position: 'relative', outline: isSelected ? '2px solid #3b82f6' : '2px solid transparent', outlineOffset: 2, opacity: isDeleting ? 0.4 : 1, transition: 'opacity 0.2s' }}>
                   <img
-                    src={getPhotoUrl(photo.storage_path)}
+                    src={getPhotoUrl(photo)}
                     alt={photo.file_name}
-                    style={{ width: '100%', display: 'block', borderRadius: 10, filter: isSelected ? 'brightness(0.7)' : 'brightness(1)', transition: 'filter 0.15s ease' }}
+                    onClick={() => setLightbox(photo)}
+                    style={{ width: '100%', display: 'block', borderRadius: 10, filter: isSelected ? 'brightness(0.7)' : 'brightness(1)', transition: 'filter 0.15s ease', cursor: 'zoom-in' }}
                     loading="lazy"
                   />
-
-                  {/* Checkbox */}
-                  <div style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderRadius: 6, background: isSelected ? '#3b82f6' : 'rgba(0,0,0,0.5)', border: isSelected ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}>
-                    {isSelected && (
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
+                  <div className={`checkbox-wrap${isSelected ? ' checked' : ''}`} onClick={e => { e.stopPropagation(); toggleSelect(photo.id) }} style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderRadius: 6, background: isSelected ? '#3b82f6' : 'rgba(0,0,0,0.5)', border: isSelected ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease', cursor: 'pointer', zIndex: 2 }}>
+                    {isSelected && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </div>
-
-                  {/* Uploader name */}
                   {photo.uploaded_by_name && (
                     <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: 5, padding: '3px 7px', fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '0.04em' }}>
-                      {isMine ? 'You' : photo.uploaded_by_name}
+                      {photo.uploaded_by_name === guestName ? 'You' : photo.uploaded_by_name}
                     </div>
                   )}
-
-                  {/* Actions — show on hover */}
-                  <div className="photo-actions" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 8px 8px', background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', opacity: 0, transition: 'opacity 0.2s', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderRadius: '0 0 10px 10px' }}>
-                    {/* Download single */}
-                    <button
-                      onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(photo.storage_path), photo.file_name) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'white', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'inherit' }}
-                    >
-                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                        <path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
+                  <div className="photo-actions" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 8px 8px', background: 'linear-gradient(transparent,rgba(0,0,0,0.7))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderRadius: '0 0 10px 10px', zIndex: 2 }}>
+                    <button onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(photo), photo.file_name) }} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'white', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
                       Save
                     </button>
-
-                    {/* Delete — only show for photos you uploaded */}
-                    {isMine && (
-                      <button
-                        onClick={e => { e.stopPropagation(); deletePhoto(photo) }}
-                        disabled={isDeleting}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,100,100,0.9)', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'inherit' }}
-                      >
-                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                          <path d="M2 4h10M5 4V2h4v2M6 7v4M8 7v4M3 4l1 8h6l1-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+                    {showDelete && (
+                      <button onClick={e => { e.stopPropagation(); deletePhoto(photo) }} disabled={isDeleting} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,100,100,0.9)', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2h4v2M6 7v4M8 7v4M3 4l1 8h6l1-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         {isDeleting ? '...' : 'Delete'}
                       </button>
                     )}
