@@ -95,7 +95,7 @@ function JoinContent() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your name</div>
               <input
-                placeholder="e.g. Faizan"
+                placeholder="e.g. John Doe"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'white', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
