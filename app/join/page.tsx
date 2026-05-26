@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -12,10 +12,10 @@ function JoinContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  useState(() => {
+  useEffect(() => {
     const code = searchParams.get('code')
     if (code) setJoinCode(code.toUpperCase())
-  })
+  }, [searchParams])
 
   const joinEvent = async () => {
     if (!joinCode.trim() || !name.trim() || !agreed) return

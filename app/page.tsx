@@ -204,11 +204,22 @@ export default function Home() {
     <main style={{ fontFamily: "-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif", background: '#080c14', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <style>{`
         @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
-        @keyframes shimmer{0%{left:-100%}100%{left:200%}}
-        @keyframes countPulse{0%,100%{opacity:0.6}50%{opacity:1}}
-        input::placeholder{color:rgba(255,255,255,0.2);}
-        input:focus{outline:none;}
+      @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+      @keyframes shimmer{0%{left:-100%}100%{left:200%}}
+      @keyframes countPulse{0%,100%{opacity:0.6}50%{opacity:1}}
+      input::placeholder{color:rgba(255,255,255,0.2);}
+      input:focus{outline:none;}
+
+      @media (max-width: 768px) {
+        .hero-grid { grid-template-columns: 1fr !important; padding: 24px 20px !important; }
+        .hero-cards { display: none !important; }
+        .hero-left { padding-right: 0 !important; }
+        .hero-headline { font-size: 36px !important; }
+        .nav-inner { padding: 0 20px !important; }
+        .nav-join { display: none !important; }
+        .footer-inner { padding: 12px 20px !important; flex-wrap: wrap; gap: 8px !important; }
+        .footer-links { gap: 12px !important; flex-wrap: wrap; }
+      }
       `}</style>
 
       {/* Grid background */}
@@ -239,7 +250,7 @@ export default function Home() {
       </nav>
 
       {!eventCode ? (
-        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'grid', gridTemplateColumns: '460px 1fr', alignItems: 'center', padding: '0 48px', gap: 0, maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'grid', gridTemplateColumns: 'min(460px, 100%) 1fr', alignItems: 'center', padding: '0 clamp(20px, 5vw, 48px)', gap: 0, maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
           {/* Left */}
           <div style={{ paddingRight: 48, opacity: 0, animation: 'fadeUp 0.6s ease 0.1s forwards' }}>
