@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+
 
 function EventPageContent() {
   const params = useParams()
@@ -26,12 +26,8 @@ function EventPageContent() {
   useEffect(() => {
     fetchEvent()
     fetchPhotos()
-    const channel = supabase
-      .channel('photos')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'photos', filter: `event_id=eq.${eventId}` }, () => { fetchPhotos() })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'photos', filter: `event_id=eq.${eventId}` }, () => { fetchPhotos() })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const interval = setInterval(fetchPhotos, 5000)
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -51,13 +47,23 @@ function EventPageContent() {
   }, [lightbox, photos])
 
   const fetchEvent = async () => {
-    const { data } = await supabase.from('events').select('*').eq('id', eventId).single()
-    setEvent(data)
+    try {
+      const response = await fetch(`/api/events?id=${eventId}`)
+      const data = await response.json()
+      if (response.ok) setEvent(data)
+    } catch (err) {
+      console.error('Failed to fetch event:', err)
+    }
   }
 
   const fetchPhotos = async () => {
-    const { data } = await supabase.from('photos').select('*').eq('event_id', eventId).order('uploaded_at', { ascending: false })
-    setPhotos(data || [])
+    try {
+      const response = await fetch(`/api/photos?eventId=${eventId}`)
+      const data = await response.json()
+      setPhotos(data.photos || [])
+    } catch (err) {
+      console.error('Failed to fetch photos:', err)
+    }
   }
 
   const cancelUpload = () => {
@@ -116,6 +122,8 @@ function EventPageContent() {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('eventId', eventId)
+        formData.append('uploadedByName', guestName)
+        formData.append('sessionToken', sessionToken)
 
         const response = await fetch('/api/upload', {
           method: 'POST',
@@ -125,16 +133,6 @@ function EventPageContent() {
 
         if (response.ok) {
           const { url, filePath } = await response.json()
-          await supabase.from('photos').insert([{
-            event_id: eventId,
-            storage_path: filePath,
-            file_name: file.name,
-            file_size: file.size,
-            uploaded_by_name: guestName,
-            session_token: sessionToken,
-            storage_provider: 'r2',
-            public_url: url
-          }])
         }
       } catch (err: any) {
         if (err.name === 'AbortError') break
@@ -154,16 +152,11 @@ function EventPageContent() {
     if (!confirm('Delete this photo? This cannot be undone.')) return
     setDeleting(photo.id)
     try {
-      if (photo.storage_provider === 'r2') {
-        await fetch('/api/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filePath: photo.storage_path })
-        })
-      } else {
-        await supabase.storage.from('photos').remove([photo.storage_path])
-      }
-      await supabase.from('photos').delete().eq('id', photo.id)
+      await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: photo.storage_path, eventId, photoId: photo.id })
+      })
       setPhotos(prev => prev.filter(p => p.id !== photo.id))
       setSelected(prev => { const n = new Set(prev); n.delete(photo.id); return n })
       if (lightbox?.id === photo.id) setLightbox(null)
@@ -174,9 +167,7 @@ function EventPageContent() {
   }
 
   const getPhotoUrl = (photo: any) => {
-    if (photo.public_url) return photo.public_url
-    const { data } = supabase.storage.from('photos').getPublicUrl(photo.storage_path)
-    return data.publicUrl
+    return photo.public_url
   }
 
   const downloadPhoto = async (url: string, fileName: string) => {

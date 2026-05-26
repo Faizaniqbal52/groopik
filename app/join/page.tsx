@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+
 
 function JoinContent() {
   const [joinCode, setJoinCode] = useState('')
@@ -20,25 +20,26 @@ function JoinContent() {
   const joinEvent = async () => {
     if (!joinCode.trim() || !name.trim() || !agreed) return
     setLoading(true)
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('join_code', joinCode.toUpperCase())
-      .single()
-    if (error || !data) {
-      alert('Event not found. Check your code and try again.')
-      setLoading(false)
-      return
-    }
+    try {
+      const response = await fetch(`/api/events?code=${joinCode.toUpperCase()}`)
+      const data = await response.json()
+      if (!response.ok || !data.id) {
+        alert('Event not found. Check your code and try again.')
+        setLoading(false)
+        return
+      }
 
-    const storageKey = `groopik_${data.id}_${name.trim().toLowerCase()}`
-    let sessionToken = localStorage.getItem(storageKey)
-    if (!sessionToken) {
-      sessionToken = `${name.trim().toLowerCase()}_${Math.random().toString(36).substring(2)}_${Date.now().toString(36)}`
-      localStorage.setItem(storageKey, sessionToken)
-    }
+      const storageKey = `groopik_${data.id}_${name.trim().toLowerCase()}`
+      let sessionToken = localStorage.getItem(storageKey)
+      if (!sessionToken) {
+        sessionToken = `${name.trim().toLowerCase()}_${Math.random().toString(36).substring(2)}_${Date.now().toString(36)}`
+        localStorage.setItem(storageKey, sessionToken)
+      }
 
-    router.push(`/event/${data.id}?name=${encodeURIComponent(name.trim())}&token=${sessionToken}`)
+      router.push(`/event/${data.id}?name=${encodeURIComponent(name.trim())}&token=${sessionToken}`)
+    } catch (err) {
+      alert('Error: ' + (err as Error).message)
+    }
     setLoading(false)
   }
 

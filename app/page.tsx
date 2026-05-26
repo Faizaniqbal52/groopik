@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+
 import { QRCodeSVG } from 'qrcode.react'
 
 export default function Home() {
@@ -24,16 +24,21 @@ export default function Home() {
   const createEvent = async () => {
     if (!eventName.trim()) return
     setLoading(true)
-    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-    const { data, error } = await supabase
-      .from('events')
-      .insert([{ name: eventName, join_code: joinCode }])
-      .select()
-    if (error) {
-      alert('Error: ' + error.message)
-    } else {
-      setEventCode(joinCode)
-      setEventId(data[0].id)
+    try {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: eventName }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert('Error: ' + (data.error || 'Failed to create event'))
+      } else {
+        setEventCode(data.join_code)
+        setEventId(data.id)
+      }
+    } catch (err) {
+      alert('Error: ' + (err as Error).message)
     }
     setLoading(false)
   }

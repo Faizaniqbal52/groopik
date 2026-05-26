@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3'
 
 export const r2Client = new S3Client({
   region: 'auto',
@@ -29,4 +35,40 @@ export const deleteFromR2 = async (filePath: string) => {
     Key: filePath,
   })
   await r2Client.send(command)
+}
+
+export const putJson = async (key: string, data: any) => {
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: JSON.stringify(data),
+    ContentType: 'application/json',
+  })
+  await r2Client.send(command)
+}
+
+export const getJson = async (key: string): Promise<any | null> => {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    })
+    const response = await r2Client.send(command)
+    const body = await response.Body?.transformToString()
+    return body ? JSON.parse(body) : null
+  } catch (err: any) {
+    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+      return null
+    }
+    throw err
+  }
+}
+
+export const listObjects = async (prefix: string) => {
+  const command = new ListObjectsV2Command({
+    Bucket: BUCKET_NAME,
+    Prefix: prefix,
+  })
+  const response = await r2Client.send(command)
+  return response.Contents || []
 }
