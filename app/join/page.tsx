@@ -46,133 +46,255 @@ function JoinContent() {
   const ready = joinCode.trim() && name.trim() && agreed
 
   return (
-    <main style={{ fontFamily: "-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif", background: '#080c14', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+    <main className="join-page">
       <style>{`
-        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
-        input::placeholder{color:rgba(255,255,255,0.2);}
-        input:focus{outline:none;}
+        .join-page {
+          background: var(--color-bg-primary);
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          position: relative;
+          overflow: hidden;
+          font-family: var(--font-sans);
+        }
+
+        .join-main {
+          position: relative;
+          z-index: 10;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-10) var(--space-6);
+        }
+
+        .join-card-wrapper {
+          width: 100%;
+          max-width: 440px;
+        }
+
+        .join-card {
+          padding: var(--space-12);
+        }
+
+        .join-headline {
+          font-size: var(--text-3xl);
+          font-weight: 800;
+          letter-spacing: var(--tracking-tight);
+          color: var(--color-text-primary);
+          line-height: var(--leading-tight);
+          margin: 0 0 var(--space-3);
+        }
+
+        .join-subtitle {
+          font-size: var(--text-sm);
+          color: var(--color-text-secondary);
+          line-height: var(--leading-normal);
+          margin: 0 0 var(--space-8);
+        }
+
+        .join-form {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-5);
+        }
+
+        .join-field {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .join-agreement {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--space-3);
+          padding: var(--space-2) 0;
+        }
+
+        .join-checkbox {
+          width: 18px;
+          height: 18px;
+          border-radius: var(--radius-sm);
+          border: 2px solid var(--color-border-hover);
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+          margin-top: 2px;
+          transition: all var(--duration-fast) var(--ease-out);
+        }
+
+        .join-checkbox--checked {
+          background: var(--color-accent);
+          border-color: var(--color-accent);
+          box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .join-agreement-text {
+          font-size: var(--text-xs);
+          color: var(--color-text-tertiary);
+          line-height: var(--leading-normal);
+          cursor: pointer;
+        }
+
+        .join-agreement-link {
+          color: var(--color-accent-light);
+          cursor: pointer;
+          text-decoration: none;
+          transition: color var(--duration-fast) var(--ease-out);
+        }
+        .join-agreement-link:hover {
+          color: white;
+          text-decoration: underline;
+        }
+
+        .join-trust {
+          margin-top: var(--space-5);
+          font-size: var(--text-xs);
+          color: var(--color-text-muted);
+          text-align: center;
+          letter-spacing: var(--tracking-wide);
+        }
+
+        .join-badge-wrapper {
+          margin-bottom: var(--space-6);
+        }
+
+        @media (max-width: 480px) {
+          .join-card {
+            padding: var(--space-8) var(--space-6);
+          }
+        }
       `}</style>
 
-      <div style={{ position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(59,130,246,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.025) 1px,transparent 1px)', backgroundSize: '48px 48px', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'fixed', top: -120, right: -80, width: 480, height: 480, background: 'radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      {/* Background effects */}
+      <div className="g-bg-grid" />
+      <div className="g-bg-glow g-bg-glow-1" />
+      <div className="g-bg-glow g-bg-glow-2" />
 
-      {/* Nav */}
-      <nav style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', height: 64, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
-        <div onClick={() => router.push('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+      {/* Navigation */}
+      <nav className="g-nav">
+        <div className="g-nav-logo" onClick={() => router.push('/')}>
           <svg width="32" height="32" viewBox="0 0 44 44">
-            <rect x="2" y="2" width="40" height="40" rx="10" fill="#3b82f6"/>
+            <rect x="2" y="2" width="40" height="40" rx="10" fill="var(--color-accent)"/>
             <path d="M28,14 Q22,10 16,14 Q10,18 10,22 Q10,26 14,29 Q18,32 23,31 Q27,30 28,27 L28,22 L22,22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', lineHeight: 1 }}>GROOPIK</div>
-            <div style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.18)', textTransform: 'uppercase', marginTop: 1 }}>Collect every moment</div>
+            <div className="g-nav-brand">GROOPIK</div>
+            <div className="g-nav-tagline">Collect every moment</div>
           </div>
         </div>
-        <button onClick={() => router.push('/')} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', padding: '8px 20px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>
-          ← Create event
-        </button>
+        <div className="g-nav-actions">
+          <button className="g-btn g-btn-secondary" onClick={() => router.push('/')}>
+            ← Create event
+          </button>
+        </div>
       </nav>
 
-      {/* Main */}
-      <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-        <div style={{ width: '100%', maxWidth: 420, opacity: 0, animation: 'fadeUp 0.6s ease 0.1s forwards' }}>
+      {/* Main Content */}
+      <div className="join-main">
+        <div className="join-card-wrapper g-animate-in">
+          <div className="join-card g-card">
 
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.16)', borderRadius: 100, padding: '5px 14px', marginBottom: 28 }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', animation: 'blink 2s infinite', flexShrink: 0, boxShadow: '0 0 5px #3b82f6' }} />
-            <span style={{ fontSize: 10, color: 'rgba(100,160,255,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>Join an event</span>
-          </div>
-
-          <h1 style={{ fontSize: 40, fontWeight: 900, letterSpacing: '-0.05em', color: 'white', lineHeight: 1.02, margin: '0 0 12px' }}>
-            You're invited.
-          </h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)', lineHeight: 1.8, margin: '0 0 36px' }}>
-            Enter your name and the event code<br />to join the shared gallery.
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-            {/* Name */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Your name</div>
-              <input
-                placeholder="e.g. John Doe"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'white', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                onFocus={e => e.target.style.borderColor = 'rgba(59,130,246,0.4)'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-              />
+            {/* Badge */}
+            <div className="join-badge-wrapper">
+              <span className="g-badge g-badge-live">Join an event</span>
             </div>
 
-            {/* Code */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Event code</div>
-              <input
-                placeholder="e.g. W27YXY"
-                value={joinCode}
-                onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                onKeyDown={e => e.key === 'Enter' && joinEvent()}
-                maxLength={6}
-                style={{ width: '100%', padding: '14px 18px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, color: 'white', fontSize: 20, fontFamily: 'monospace', letterSpacing: '0.2em', boxSizing: 'border-box', textTransform: 'uppercase', transition: 'border-color 0.2s' }}
-                onFocus={e => e.target.style.borderColor = 'rgba(59,130,246,0.4)'}
-                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-              />
-            </div>
+            {/* Headline */}
+            <h1 className="join-headline">You&apos;re invited.</h1>
+            <p className="join-subtitle">
+              Enter your name and the event code<br />to join the shared gallery.
+            </p>
 
-            {/* Agreement */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0' }}>
-              <div
-                onClick={() => setAgreed(!agreed)}
-                style={{ width: 18, height: 18, borderRadius: 5, background: agreed ? '#3b82f6' : 'transparent', border: agreed ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, marginTop: 2, transition: 'all 0.15s ease' }}>
-                {agreed && (
-                  <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
+            {/* Form */}
+            <div className="join-form">
+
+              {/* Name field */}
+              <div className="join-field">
+                <label className="g-label">Your name</label>
+                <input
+                  className="g-input g-input-lg"
+                  placeholder="e.g. John Doe"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                />
               </div>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', lineHeight: 1.6, margin: 0, cursor: 'pointer' }} onClick={() => setAgreed(!agreed)}>
-                I agree to the{' '}
-                <span onClick={e => { e.stopPropagation(); router.push('/terms') }} style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}>Terms of Service</span>
-                {' '}and{' '}
-                <span onClick={e => { e.stopPropagation(); router.push('/privacy') }} style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}>Privacy Policy</span>
-                . I confirm I own or have permission to share any photos I upload.
-              </p>
+
+              {/* Code field */}
+              <div className="join-field">
+                <label className="g-label">Event code</label>
+                <input
+                  className="g-input g-input-lg g-input-code"
+                  placeholder="e.g. W27YXY"
+                  value={joinCode}
+                  onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                  onKeyDown={e => e.key === 'Enter' && joinEvent()}
+                  maxLength={6}
+                />
+              </div>
+
+              {/* Agreement checkbox */}
+              <div className="join-agreement">
+                <div
+                  className={`join-checkbox ${agreed ? 'join-checkbox--checked' : ''}`}
+                  onClick={() => setAgreed(!agreed)}
+                >
+                  {agreed && (
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+                <p className="join-agreement-text" onClick={() => setAgreed(!agreed)}>
+                  I agree to the{' '}
+                  <span className="join-agreement-link" onClick={e => { e.stopPropagation(); router.push('/terms') }}>Terms of Service</span>
+                  {' '}and{' '}
+                  <span className="join-agreement-link" onClick={e => { e.stopPropagation(); router.push('/privacy') }}>Privacy Policy</span>
+                  . I confirm I own or have permission to share any photos I upload.
+                </p>
+              </div>
+
+              {/* Join button */}
+              <button
+                className="g-btn g-btn-primary g-btn-lg"
+                onClick={joinEvent}
+                disabled={loading || !ready}
+                style={{ width: '100%', marginTop: 'var(--space-1)' }}
+              >
+                {loading ? 'Finding event...' : 'Join Event →'}
+              </button>
             </div>
 
-            {/* Button */}
-            <button
-              onClick={joinEvent}
-              disabled={loading || !ready}
-              style={{ width: '100%', padding: 15, background: ready ? '#3b82f6' : 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, color: ready ? 'white' : 'rgba(255,255,255,0.2)', fontWeight: 800, fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: ready ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginTop: 4, transition: 'all 0.2s' }}>
-              {loading ? 'Finding event...' : 'Join Event →'}
-            </button>
-          </div>
+            {/* Trust line */}
+            <p className="join-trust">
+              No account needed · Your photos stay yours
+            </p>
 
-          <p style={{ marginTop: 20, fontSize: 11, color: 'rgba(255,255,255,0.15)', textAlign: 'center', letterSpacing: '0.04em' }}>
-            No account needed · Your photos stay yours
-          </p>
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div style={{ position: 'relative', zIndex: 10, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '14px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 24 }}>
-          {['No install', 'Instant gallery', 'Share via QR'].map(t => (
-            <span key={t} style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{t}</span>
-          ))}
-          <span onClick={() => router.push('/terms')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer' }}>Terms</span>
-          <span onClick={() => router.push('/privacy')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer' }}>Privacy</span>
+      <footer className="g-footer">
+        <div className="g-footer-links">
+          <span className="g-footer-link g-hide-mobile">No install</span>
+          <span className="g-footer-link g-hide-mobile">Instant gallery</span>
+          <span className="g-footer-link g-hide-mobile">Share via QR</span>
+          <span className="g-footer-link" onClick={() => router.push('/terms')}>Terms</span>
+          <span className="g-footer-link" onClick={() => router.push('/privacy')}>Privacy</span>
         </div>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>© 2025 Groopik</span>
-      </div>
+        <span className="g-footer-copy">© 2025 Groopik</span>
+      </footer>
     </main>
   )
 }
 
 export default function JoinPage() {
   return (
-    <Suspense fallback={<div style={{ background: '#080c14', minHeight: '100vh' }} />}>
+    <Suspense fallback={<div style={{ background: 'var(--color-bg-primary)', minHeight: '100vh' }} />}>
       <JoinContent />
     </Suspense>
   )

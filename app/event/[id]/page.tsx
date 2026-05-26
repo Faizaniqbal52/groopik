@@ -166,9 +166,7 @@ function EventPageContent() {
     setDeleting(null)
   }
 
-  const getPhotoUrl = (photo: any) => {
-    return photo.public_url
-  }
+  const getPhotoUrl = (photo: any) => photo.public_url
 
   const downloadPhoto = async (url: string, fileName: string) => {
     try {
@@ -207,127 +205,144 @@ function EventPageContent() {
   const canDelete = (photo: any) => isHost || photo.session_token === sessionToken
 
   return (
-    <main style={{ fontFamily: "-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif", background: '#080c14', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <main style={{ background: 'var(--color-bg-primary)', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <style>{`
-        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @keyframes photoIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-        @keyframes lightboxIn{from{opacity:0}to{opacity:1}}
-        .photo-item .photo-actions{opacity:0;transition:opacity 0.2s;}
-        .photo-item:hover .photo-actions{opacity:1;}
-        .photo-item .checkbox-wrap{opacity:0;transition:opacity 0.2s;}
-        .photo-item:hover .checkbox-wrap{opacity:1;}
-        .photo-item .checkbox-wrap.checked{opacity:1;}
-        .upload-btn:hover{background:rgba(59,130,246,0.1)!important;border-color:rgba(59,130,246,0.3)!important;}
-        input[type=file]{display:none;}
+        .photo-item { position: relative; break-inside: avoid; margin-bottom: var(--space-3); border-radius: var(--radius-md); overflow: hidden; transition: transform var(--duration-normal) var(--ease-out); }
+        .photo-item:hover { transform: scale(1.015); z-index: 2; }
+        .photo-item .photo-overlay { opacity: 0; transition: opacity var(--duration-normal) var(--ease-out); }
+        .photo-item:hover .photo-overlay { opacity: 1; }
+        .photo-item .checkbox-el { opacity: 0; transition: opacity var(--duration-fast) var(--ease-out); }
+        .photo-item:hover .checkbox-el { opacity: 1; }
+        .photo-item .checkbox-el.is-checked { opacity: 1; }
+        .photo-item img { width: 100%; display: block; transition: filter var(--duration-normal) var(--ease-out); }
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(6,8,13,0.95); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); z-index: 100; display: flex; align-items: center; justify-content: center; animation: g-fade-in 0.25s ease; }
+        .lightbox-img { max-width: 88vw; max-height: 85vh; object-fit: contain; border-radius: var(--radius-lg); box-shadow: var(--shadow-xl); }
+        .lightbox-nav { position: absolute; background: var(--color-bg-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text-primary); padding: var(--space-3) var(--space-4); font-size: var(--text-lg); cursor: pointer; transition: all var(--duration-fast) var(--ease-out); font-family: var(--font-sans); }
+        .lightbox-nav:hover { background: var(--color-bg-surface-hover); border-color: var(--color-border-hover); }
+        .progress-bar { height: 4px; background: var(--color-bg-surface); border-radius: var(--radius-full); overflow: hidden; margin-bottom: var(--space-5); }
+        .progress-fill { height: 100%; background: var(--gradient-accent); border-radius: var(--radius-full); transition: width 0.3s var(--ease-out); box-shadow: var(--shadow-glow); }
+        .drag-zone { border: 2px dashed var(--color-border); border-radius: var(--radius-xl); padding: var(--space-16) var(--space-8); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); cursor: pointer; transition: all var(--duration-normal) var(--ease-out); }
+        .drag-zone:hover { border-color: var(--color-accent-border); background: var(--color-accent-dim); }
+        @media (max-width: 768px) {
+          .event-header { flex-direction: column !important; align-items: flex-start !important; gap: var(--space-4) !important; }
+          .event-actions { width: 100%; }
+          .event-actions > * { flex: 1; }
+        }
       `}</style>
 
-      <div style={{ position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(59,130,246,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.02) 1px,transparent 1px)', backgroundSize: '48px 48px', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'fixed', top: -120, right: -80, width: 480, height: 480, background: 'radial-gradient(circle,rgba(59,130,246,0.06) 0%,transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div className="g-bg-grid" />
+      <div className="g-bg-glow g-bg-glow-1" />
 
-      {/* Lightbox */}
+      {/* ─── Lightbox ─── */}
       {lightbox && (
-        <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.95)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'lightboxIn 0.2s ease' }}>
-          <button onClick={e => { e.stopPropagation(); const idx = photos.findIndex(p => p.id === lightbox.id); if (idx > 0) setLightbox(photos[idx - 1]) }} style={{ position: 'absolute', left: 24, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'white', padding: '12px 16px', fontSize: 18, cursor: 'pointer', zIndex: 101 }}>←</button>
-          <img src={getPhotoUrl(lightbox)} onClick={e => e.stopPropagation()} style={{ maxWidth: '88vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 12, boxShadow: '0 24px 80px rgba(0,0,0,0.8)' }} />
-          <button onClick={e => { e.stopPropagation(); const idx = photos.findIndex(p => p.id === lightbox.id); if (idx < photos.length - 1) setLightbox(photos[idx + 1]) }} style={{ position: 'absolute', right: 24, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: 'white', padding: '12px 16px', fontSize: 18, cursor: 'pointer', zIndex: 101 }}>→</button>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom,rgba(0,0,0,0.6),transparent)' }}>
+        <div className="lightbox-overlay" onClick={() => setLightbox(null)}>
+          <button className="lightbox-nav" onClick={e => { e.stopPropagation(); const idx = photos.findIndex(p => p.id === lightbox.id); if (idx > 0) setLightbox(photos[idx - 1]) }} style={{ left: 'var(--space-6)' }}>←</button>
+          <img src={getPhotoUrl(lightbox)} onClick={e => e.stopPropagation()} className="lightbox-img" alt={lightbox.file_name} />
+          <button className="lightbox-nav" onClick={e => { e.stopPropagation(); const idx = photos.findIndex(p => p.id === lightbox.id); if (idx < photos.length - 1) setLightbox(photos[idx + 1]) }} style={{ right: 'var(--space-6)' }}>→</button>
+
+          {/* Top bar */}
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: 'var(--space-4) var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(to bottom, rgba(6,8,13,0.8), transparent)' }}>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>{lightbox.file_name}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Uploaded by {lightbox.uploaded_by_name || 'Unknown'}</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>{lightbox.file_name}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', marginTop: 2 }}>by {lightbox.uploaded_by_name || 'Unknown'}</div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(lightbox), lightbox.file_name) }} style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: 'white', padding: '7px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button className="g-btn g-btn-secondary" onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(lightbox), lightbox.file_name) }}>Save</button>
               {canDelete(lightbox) && (
-                <button onClick={e => { e.stopPropagation(); deletePhoto(lightbox) }} style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, color: 'rgba(255,100,100,0.9)', padding: '7px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                <button className="g-btn g-btn-danger" onClick={e => { e.stopPropagation(); deletePhoto(lightbox) }}>Delete</button>
               )}
-              <button onClick={() => setLightbox(null)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'white', padding: '7px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
+              <button className="g-btn g-btn-secondary" onClick={() => setLightbox(null)}>✕</button>
             </div>
           </div>
-          <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
+
+          {/* Counter */}
+          <div style={{ position: 'absolute', bottom: 'var(--space-6)', left: '50%', transform: 'translateX(-50%)', fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)', letterSpacing: 'var(--tracking-wide)', fontFamily: 'var(--font-mono)' }}>
             {photos.findIndex(p => p.id === lightbox.id) + 1} / {photos.length}
           </div>
         </div>
       )}
 
-      {/* Nav */}
-      <nav style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', height: 64, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
-        <div onClick={() => router.push('/')} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+      {/* ─── Nav ─── */}
+      <nav className="g-nav">
+        <div className="g-nav-logo" onClick={() => router.push('/')}>
           <svg width="32" height="32" viewBox="0 0 44 44">
-            <rect x="2" y="2" width="40" height="40" rx="10" fill="#3b82f6"/>
+            <rect x="2" y="2" width="40" height="40" rx="10" fill="var(--color-accent)"/>
             <path d="M28,14 Q22,10 16,14 Q10,18 10,22 Q10,26 14,29 Q18,32 23,31 Q27,30 28,27 L28,22 L22,22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', lineHeight: 1 }}>GROOPIK</div>
-            <div style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.18)', textTransform: 'uppercase', marginTop: 1 }}>Collect every moment</div>
+            <div className="g-nav-brand">GROOPIK</div>
+            <div className="g-nav-tagline">Collect every moment</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="g-nav-actions">
           {event && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '6px 14px' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 5px #4ade80' }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{event.name}</span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>·</span>
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', letterSpacing: '0.1em' }}>{event.join_code}</span>
+            <div className="g-badge g-hide-mobile">
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 6px var(--color-success)', animation: 'g-pulse 2s infinite' }} />
+              <span>{event.name}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>·</span>
+              <span style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.1em' }}>{event.join_code}</span>
             </div>
           )}
           {isHost && (
-            <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 6, padding: '4px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(100,160,255,0.8)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Host</div>
+            <div className="g-badge" style={{ background: 'var(--color-accent-dim)', borderColor: 'var(--color-accent-border)' }}>Host</div>
           )}
-          <button onClick={shareLink} style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: 'rgba(100,160,255,0.8)', padding: '7px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Share link</button>
+          <button className="g-btn g-btn-secondary" onClick={shareLink}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 2v8M3 6l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Share Link
+          </button>
         </div>
       </nav>
 
-      {/* Main */}
-      <div style={{ position: 'relative', zIndex: 10, flex: 1, maxWidth: 1100, margin: '0 auto', width: '100%', padding: '32px 48px', boxSizing: 'border-box' }}>
+      {/* ─── Main Content ─── */}
+      <div style={{ position: 'relative', zIndex: 10, flex: 1, maxWidth: 'var(--max-width)', margin: '0 auto', width: '100%', padding: 'var(--space-8) var(--content-padding)', boxSizing: 'border-box' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, opacity: 0, animation: 'fadeUp 0.5s ease 0.1s forwards' }}>
+        <div className="event-header g-animate-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-8)' }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', margin: 0, lineHeight: 1 }}>{event?.name || 'Loading...'}</h1>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: '6px 0 0' }}>
-              Welcome, <span style={{ color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{guestName}</span>
+            <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, letterSpacing: 'var(--tracking-tight)', color: 'var(--color-text-primary)', margin: 0, lineHeight: 'var(--leading-tight)' }}>
+              {event?.name || 'Loading...'}
+            </h1>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', margin: 'var(--space-2) 0 0' }}>
+              Welcome, <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>{guestName}</span>
               {photos.length > 0 && <span> · {photos.length} photo{photos.length !== 1 ? 's' : ''}</span>}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <label className="upload-btn" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'white', cursor: uploading ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: uploading ? 0.6 : 1 }}>
+          <div className="event-actions" style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+            <label className="g-btn g-btn-secondary g-btn-lg" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
               {uploading ? (
                 <>
-                  <svg width="14" height="14" viewBox="0 0 14 14" style={{ animation: 'spin 1s linear infinite' }}>
-                    <circle cx="7" cy="7" r="5.5" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5"/>
-                    <path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                  <svg width="14" height="14" viewBox="0 0 14 14" style={{ animation: 'g-spin 1s linear infinite' }}>
+                    <circle cx="7" cy="7" r="5.5" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="1.5"/>
+                    <path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" fill="none" stroke="var(--color-text-primary)" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                   {uploadProgress}%
                 </>
               ) : (
                 <>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M7 10V4M4 7l3-3 3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M7 10V4M4 7l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
-                  Upload photos
+                  Upload Photos
                 </>
               )}
               <input type="file" accept="image/*" multiple onChange={uploadPhotos} disabled={uploading} />
             </label>
 
             {uploading && (
-              <button onClick={cancelUpload} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,100,100,0.9)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-                </svg>
+              <button className="g-btn g-btn-danger g-btn-lg" onClick={cancelUpload}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
                 Cancel
               </button>
             )}
 
             {photos.length > 0 && selected.size === 0 && !uploading && (
-              <button onClick={downloadAll} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button className="g-btn g-btn-primary g-btn-lg" onClick={downloadAll}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                   <path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
-                Download all ({photos.length})
+                Download All ({photos.length})
               </button>
             )}
           </div>
@@ -335,21 +350,21 @@ function EventPageContent() {
 
         {/* Progress bar */}
         {uploading && (
-          <div style={{ marginBottom: 20, background: 'rgba(255,255,255,0.04)', borderRadius: 4, overflow: 'hidden', height: 3 }}>
-            <div style={{ height: '100%', background: '#3b82f6', width: `${uploadProgress}%`, transition: 'width 0.3s ease', borderRadius: 4 }} />
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
           </div>
         )}
 
         {/* Selection bar */}
         {selected.size > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, padding: '12px 16px', background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 13, color: 'rgba(100,160,255,0.9)', fontWeight: 600 }}>{selected.size} photo{selected.size !== 1 ? 's' : ''} selected</span>
-              <button onClick={clearSelection} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Clear</button>
+          <div className="g-card g-card-accent g-animate-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-5)', padding: 'var(--space-3) var(--space-4)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-accent-light)', fontWeight: 600 }}>{selected.size} photo{selected.size !== 1 ? 's' : ''} selected</span>
+              <button className="g-btn g-btn-ghost" onClick={clearSelection}>Clear</button>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={selectAll} style={{ padding: '7px 14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Select all</button>
-              <button onClick={downloadSelected} style={{ padding: '7px 16px', background: '#3b82f6', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, color: 'white', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button className="g-btn g-btn-secondary" onClick={selectAll}>Select All</button>
+              <button className="g-btn g-btn-primary" onClick={downloadSelected}>
                 <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 Download {selected.size}
               </button>
@@ -357,49 +372,64 @@ function EventPageContent() {
           </div>
         )}
 
-        {/* Gallery */}
+        {/* ─── Gallery ─── */}
         {photos.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 360, opacity: 0, animation: 'fadeUp 0.5s ease 0.2s forwards' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 16, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect x="2" y="5" width="24" height="18" rx="3" stroke="rgba(59,130,246,0.6)" strokeWidth="1.5"/>
-                <circle cx="9" cy="11" r="2" stroke="rgba(59,130,246,0.6)" strokeWidth="1.5"/>
-                <path d="M2 19l7-5 4 4 4-3 9 5" stroke="rgba(59,130,246,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <p style={{ fontSize: 16, fontWeight: 600, color: 'rgba(255,255,255,0.4)', margin: 0 }}>No photos yet</p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', margin: '6px 0 0' }}>Be the first to upload</p>
+          <div className="g-animate-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+            <label className="drag-zone" style={{ width: '100%', maxWidth: 500 }}>
+              <div style={{ width: 72, height: 72, borderRadius: 'var(--radius-lg)', background: 'var(--color-accent-dim)', border: '1px solid var(--color-accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <rect x="3" y="6" width="26" height="20" rx="4" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+                  <circle cx="11" cy="13" r="2.5" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+                  <path d="M3 22l8-6 5 5 4-3 9 6" stroke="var(--color-accent-light)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <p style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-text-secondary)', margin: 0 }}>No photos yet</p>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', margin: 0 }}>Click here or drag photos to upload</p>
+              <button className="g-btn g-btn-primary g-btn-lg" style={{ marginTop: 'var(--space-2)', pointerEvents: 'none' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M7 10V4M4 7l3-3 3 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Upload Photos
+              </button>
+              <input type="file" accept="image/*" multiple onChange={uploadPhotos} />
+            </label>
           </div>
         ) : (
-          <div style={{ columns: '4 200px', gap: 10, opacity: 0, animation: 'fadeUp 0.5s ease 0.2s forwards' }}>
+          <div className="g-animate-in g-animate-in-delay-1" style={{ columns: '4 220px', gap: 'var(--space-3)' }}>
             {photos.map((photo, i) => {
               const isSelected = selected.has(photo.id)
               const isDeleting = deleting === photo.id
               const showDelete = canDelete(photo)
               return (
-                <div key={photo.id} className="photo-item" style={{ breakInside: 'avoid', marginBottom: 10, borderRadius: 10, overflow: 'hidden', animation: `photoIn 0.4s ease ${i * 0.04}s both`, position: 'relative', outline: isSelected ? '2px solid #3b82f6' : '2px solid transparent', outlineOffset: 2, opacity: isDeleting ? 0.4 : 1, transition: 'opacity 0.2s' }}>
+                <div key={photo.id} className="photo-item" style={{ animation: `g-scale-in 0.4s var(--ease-out) ${i * 0.04}s both`, outline: isSelected ? '2px solid var(--color-accent)' : '2px solid transparent', outlineOffset: 2, opacity: isDeleting ? 0.4 : 1 }}>
                   <img
                     src={getPhotoUrl(photo)}
                     alt={photo.file_name}
                     onClick={() => setLightbox(photo)}
-                    style={{ width: '100%', display: 'block', borderRadius: 10, filter: isSelected ? 'brightness(0.7)' : 'brightness(1)', transition: 'filter 0.15s ease', cursor: 'zoom-in' }}
+                    style={{ cursor: 'zoom-in', filter: isSelected ? 'brightness(0.7)' : 'brightness(1)', borderRadius: 'var(--radius-md)' }}
                     loading="lazy"
                   />
-                  <div className={`checkbox-wrap${isSelected ? ' checked' : ''}`} onClick={e => { e.stopPropagation(); toggleSelect(photo.id) }} style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderRadius: 6, background: isSelected ? '#3b82f6' : 'rgba(0,0,0,0.5)', border: isSelected ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease', cursor: 'pointer', zIndex: 2 }}>
+
+                  {/* Checkbox */}
+                  <div className={`checkbox-el${isSelected ? ' is-checked' : ''}`} onClick={e => { e.stopPropagation(); toggleSelect(photo.id) }} style={{ position: 'absolute', top: 'var(--space-2)', left: 'var(--space-2)', width: 22, height: 22, borderRadius: 'var(--radius-sm)', background: isSelected ? 'var(--color-accent)' : 'rgba(0,0,0,0.5)', border: isSelected ? '2px solid var(--color-accent)' : '2px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 3, transition: 'all var(--duration-fast) var(--ease-out)' }}>
                     {isSelected && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </div>
+
+                  {/* Uploader badge */}
                   {photo.uploaded_by_name && (
-                    <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', borderRadius: 5, padding: '3px 7px', fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 600, letterSpacing: '0.04em' }}>
+                    <div style={{ position: 'absolute', top: 'var(--space-2)', right: 'var(--space-2)', background: 'rgba(6,8,13,0.7)', backdropFilter: 'blur(8px)', borderRadius: 'var(--radius-sm)', padding: '3px 8px', fontSize: '0.5625rem', color: 'var(--color-text-secondary)', fontWeight: 600, letterSpacing: '0.04em', zIndex: 3 }}>
                       {photo.uploaded_by_name === guestName ? 'You' : photo.uploaded_by_name}
                     </div>
                   )}
-                  <div className="photo-actions" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '24px 8px 8px', background: 'linear-gradient(transparent,rgba(0,0,0,0.7))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderRadius: '0 0 10px 10px', zIndex: 2 }}>
-                    <button onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(photo), photo.file_name) }} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'white', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
-                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M7 4v6M4 8l3 3 3-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+
+                  {/* Bottom actions overlay */}
+                  <div className="photo-overlay" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 'var(--space-8) var(--space-2) var(--space-2)', background: 'linear-gradient(transparent, rgba(6,8,13,0.8))', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderRadius: '0 0 var(--radius-md) var(--radius-md)', zIndex: 2 }}>
+                    <button className="g-btn g-btn-secondary" style={{ fontSize: '0.5625rem', padding: '4px 8px' }} onClick={e => { e.stopPropagation(); downloadPhoto(getPhotoUrl(photo), photo.file_name) }}>
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M7 4v6M4 8l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                       Save
                     </button>
                     {showDelete && (
-                      <button onClick={e => { e.stopPropagation(); deletePhoto(photo) }} disabled={isDeleting} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(255,100,100,0.9)', cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+                      <button className="g-btn g-btn-danger" style={{ fontSize: '0.5625rem', padding: '4px 8px' }} onClick={e => { e.stopPropagation(); deletePhoto(photo) }} disabled={isDeleting}>
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V2h4v2M6 7v4M8 7v4M3 4l1 8h6l1-8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         {isDeleting ? '...' : 'Delete'}
                       </button>
@@ -412,22 +442,22 @@ function EventPageContent() {
         )}
       </div>
 
-      {/* Footer */}
-      <div style={{ position: 'relative', zIndex: 10, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '14px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 32 }}>
-          {['No install', 'Instant gallery', 'Share via QR'].map(t => (
-            <span key={t} style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{t}</span>
-          ))}
+      {/* ─── Footer ─── */}
+      <footer className="g-footer">
+        <div className="g-footer-links">
+          <span className="g-footer-link g-hide-mobile">No install</span>
+          <span className="g-footer-link g-hide-mobile">Instant gallery</span>
+          <span className="g-footer-link g-hide-mobile">Share via QR</span>
         </div>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>© 2025 Groopik</span>
-      </div>
+        <span className="g-footer-copy">© 2026 Groopik</span>
+      </footer>
     </main>
   )
 }
 
 export default function EventPage() {
   return (
-    <Suspense fallback={<div style={{ background: '#080c14', minHeight: '100vh' }} />}>
+    <Suspense fallback={<div style={{ background: 'var(--color-bg-primary)', minHeight: '100vh' }} />}>
       <EventPageContent />
     </Suspense>
   )

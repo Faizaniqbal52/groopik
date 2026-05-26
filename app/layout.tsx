@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "GROOPIK",
-  description: "The photos you almost never got.",
+  title: "GROOPIK — Collect Every Moment",
+  description: "Create an event. Share the link. Everyone uploads. One gallery — yours to keep. The easiest way to collect photos from any gathering.",
+  keywords: ["photo sharing", "event photos", "group gallery", "photo collection", "event gallery"],
+  openGraph: {
+    title: "GROOPIK — Collect Every Moment",
+    description: "The photos you almost never got. Create an event, share a link, and collect every photo in one place.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -24,9 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body>
         {children}
       </body>
     </html>

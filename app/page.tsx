@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
 import { QRCodeSVG } from 'qrcode.react'
 
 export default function Home() {
@@ -57,21 +56,18 @@ export default function Home() {
     const y = e.clientY - rect.top
     const cx = rect.width / 2
     const cy = rect.height / 2
-    const rotX = ((y - cy) / cy) * -10
-    const rotY = ((x - cx) / cx) * 10
-    el.style.transform = `perspective(600px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.04)`
-    el.style.boxShadow = '0 24px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(59,130,246,0.2)'
+    const rotX = ((y - cy) / cy) * -8
+    const rotY = ((x - cx) / cx) * 8
+    el.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.03)`
   }
 
   const resetCard = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = e.currentTarget
-    el.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)'
-    el.style.boxShadow = '0 16px 40px rgba(0,0,0,0.7)'
+    e.currentTarget.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)'
   }
 
   const cards = [
     {
-      title: 'Manali Trip', sub: '47 photos · 8 people', dot: '#4ade80',
+      title: 'Manali Trip', sub: '47 photos · 8 people', dot: '#22c55e',
       scene: (
         <svg viewBox="0 0 200 120" width="100%" height="120" preserveAspectRatio="xMidYMid slice">
           <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0d1a2e"/><stop offset="55%" stopColor="#162a16"/><stop offset="100%" stopColor="#0c160c"/></linearGradient></defs>
@@ -89,7 +85,7 @@ export default function Home() {
       )
     },
     {
-      title: 'The Wedding', sub: '213 photos · 34 people', dot: '#f97316',
+      title: 'The Wedding', sub: '213 photos · 34 people', dot: '#f59e0b',
       scene: (
         <svg viewBox="0 0 200 120" width="100%" height="120" preserveAspectRatio="xMidYMid slice">
           <defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1c0f06"/><stop offset="100%" stopColor="#0e0806"/></linearGradient></defs>
@@ -197,203 +193,452 @@ export default function Home() {
     },
   ]
 
-  const cardStyle: React.CSSProperties = {
-    borderRadius: 12,
-    overflow: 'hidden',
-    boxShadow: '0 16px 40px rgba(0,0,0,0.7)',
-    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-    cursor: 'pointer',
-  }
+  const steps = [
+    {
+      num: '01',
+      title: 'Create an event',
+      desc: 'Name your event — wedding, trip, party. It takes 3 seconds.',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect x="4" y="6" width="24" height="20" rx="4" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <circle cx="16" cy="16" r="5" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <circle cx="16" cy="16" r="2" fill="var(--color-accent-light)"/>
+          <circle cx="23" cy="10" r="1.5" fill="var(--color-accent-light)" opacity="0.6"/>
+        </svg>
+      ),
+    },
+    {
+      num: '02',
+      title: 'Share the link',
+      desc: 'Send a QR code or link. No app downloads, no sign-ups.',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M12 16h8" stroke="var(--color-accent-light)" strokeWidth="1.5" strokeLinecap="round"/>
+          <path d="M18 12l4 4-4 4" stroke="var(--color-accent-light)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="4" y="8" width="10" height="16" rx="3" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <rect x="18" y="8" width="10" height="16" rx="3" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+        </svg>
+      ),
+    },
+    {
+      num: '03',
+      title: 'Collect every photo',
+      desc: 'Everyone uploads to one gallery. Download all, anytime.',
+      icon: (
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect x="3" y="5" width="12" height="10" rx="2" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <rect x="17" y="5" width="12" height="10" rx="2" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <rect x="3" y="17" width="12" height="10" rx="2" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <rect x="17" y="17" width="12" height="10" rx="2" stroke="var(--color-accent-light)" strokeWidth="1.5"/>
+          <path d="M7 12l2-2 3 3" stroke="var(--color-accent-light)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+    },
+  ]
 
-  return (
-    <main style={{ fontFamily: "-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif", background: '#080c14', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-      <style>{`
-        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-      @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
-      @keyframes shimmer{0%{left:-100%}100%{left:200%}}
-      @keyframes countPulse{0%,100%{opacity:0.6}50%{opacity:1}}
-      input::placeholder{color:rgba(255,255,255,0.2);}
-      input:focus{outline:none;}
+  const Logo = () => (
+    <svg width="32" height="32" viewBox="0 0 44 44">
+      <rect x="2" y="2" width="40" height="40" rx="10" fill="var(--color-accent)"/>
+      <path d="M28,14 Q22,10 16,14 Q10,18 10,22 Q10,26 14,29 Q18,32 23,31 Q27,30 28,27 L28,22 L22,22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
 
-      @media (max-width: 768px) {
-        .hero-grid { grid-template-columns: 1fr !important; padding: 24px 20px !important; }
-        .hero-cards { display: none !important; }
-        .hero-left { padding-right: 0 !important; }
-        .hero-headline { font-size: 36px !important; }
-        .nav-inner { padding: 0 20px !important; }
-        .nav-join { display: none !important; }
-        .footer-inner { padding: 12px 20px !important; flex-wrap: wrap; gap: 8px !important; }
-        .footer-links { gap: 12px !important; flex-wrap: wrap; }
-      }
-      `}</style>
+  // ─── EVENT CREATED SUCCESS SCREEN ───
+  if (eventCode) {
+    return (
+      <main style={{ background: 'var(--color-bg-primary)', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+        <div className="g-bg-grid" />
+        <div className="g-bg-glow g-bg-glow-1" />
+        <div className="g-bg-glow g-bg-glow-2" />
 
-      {/* Grid background */}
-      <div style={{ position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(59,130,246,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.025) 1px,transparent 1px)', backgroundSize: '48px 48px', pointerEvents: 'none', zIndex: 0 }} />
+        <nav className="g-nav">
+          <div className="g-nav-logo" onClick={() => { setEventCode(''); setEventName(''); setEventId('') }}>
+            <Logo />
+            <div>
+              <div className="g-nav-brand">GROOPIK</div>
+              <div className="g-nav-tagline">Collect every moment</div>
+            </div>
+          </div>
+        </nav>
 
-      {/* Blue ambient glow */}
-      <div style={{ position: 'fixed', top: -120, right: -80, width: 480, height: 480, background: 'radial-gradient(circle,rgba(59,130,246,0.07) 0%,transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-10) var(--content-padding)', textAlign: 'center' }}>
+          <div className="g-animate-in" style={{ width: '100%', maxWidth: 640 }}>
+            <div className="g-badge" style={{ marginBottom: 'var(--space-6)' }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-success)', boxShadow: '0 0 8px var(--color-success)' }} />
+              Event ready
+            </div>
 
-      {/* Nav */}
-      <nav style={{ position: 'relative', zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', height: 64, borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <svg width="32" height="32" viewBox="0 0 44 44">
-            <rect x="2" y="2" width="40" height="40" rx="10" fill="#3b82f6"/>
-            <path d="M28,14 Q22,10 16,14 Q10,18 10,22 Q10,26 14,29 Q18,32 23,31 Q27,30 28,27 L28,22 L22,22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', lineHeight: 1 }}>GROOPIK</div>
-            <div style={{ fontSize: 8, letterSpacing: '0.15em', color: 'rgba(255,255,255,0.18)', textTransform: 'uppercase', marginTop: 1 }}>Collect every moment</div>
+            <h1 style={{ fontSize: 'var(--text-3xl)', fontWeight: 800, letterSpacing: 'var(--tracking-tight)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-10)' }}>{eventName}</h1>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', width: '100%', marginBottom: 'var(--space-5)' }}>
+              {/* QR Code */}
+              <div className="g-card" style={{ padding: 'var(--space-8) var(--space-6)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)' }}>
+                <span className="g-label" style={{ marginBottom: 0 }}>Scan to join</span>
+                <div style={{ background: 'white', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+                  <QRCodeSVG
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join?code=${eventCode}`}
+                    size={148}
+                    bgColor="white"
+                    fgColor="#06080d"
+                    level="M"
+                  />
+                </div>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Point camera to join instantly</span>
+              </div>
+
+              {/* Code + Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <div className="g-card g-card-accent" style={{ padding: 'var(--space-6)', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)' }}>
+                  <span className="g-label" style={{ marginBottom: 0 }}>Join code</span>
+                  <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 900, letterSpacing: '0.12em', color: 'white', fontFamily: 'var(--font-mono)' }}>{eventCode}</div>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>Type this at groopik.com/join</span>
+                </div>
+
+                <button className="g-btn g-btn-primary g-btn-lg" onClick={copyLink} style={{ width: '100%', justifyContent: 'center', padding: 'var(--space-3) var(--space-4)' }}>
+                  {copied ? '✓ Link Copied' : 'Copy Join Link'}
+                </button>
+
+                <button className="g-btn g-btn-secondary g-btn-lg" onClick={() => router.push(`/event/${eventId}?name=Host&token=host_${eventId}`)} style={{ width: '100%', justifyContent: 'center', padding: 'var(--space-3) var(--space-4)' }}>
+                  Open My Event
+                </button>
+              </div>
+            </div>
+
+            <button className="g-btn g-btn-ghost" onClick={() => { setEventCode(''); setEventName(''); setEventId('') }} style={{ marginTop: 'var(--space-4)' }}>
+              Create another event
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-          <span onClick={() => router.push('/join')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>Join event</span>
-          <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.08)' }} />
-          <button style={{ position: 'relative', overflow: 'hidden', background: '#3b82f6', border: 'none', color: 'white', padding: '8px 20px', borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>
-            Create Event
-          </button>
+
+        <footer className="g-footer">
+          <div className="g-footer-links">
+            <span className="g-footer-link" onClick={() => router.push('/terms')}>Terms</span>
+            <span className="g-footer-link" onClick={() => router.push('/privacy')}>Privacy</span>
+          </div>
+          <span className="g-footer-copy">© 2026 Groopik</span>
+        </footer>
+      </main>
+    )
+  }
+
+  // ─── MAIN LANDING PAGE ───
+  return (
+    <main style={{ background: 'var(--color-bg-primary)', minHeight: '100vh', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+      <style>{`
+        .hero-headline {
+          font-size: var(--text-4xl);
+          font-weight: 900;
+          letter-spacing: var(--tracking-tight);
+          line-height: var(--leading-tight);
+          margin: 0 0 var(--space-5);
+          background: linear-gradient(135deg, #ffffff 0%, var(--color-accent-light) 50%, #c084fc 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .hero-grid {
+          display: grid;
+          grid-template-columns: minmax(320px, 480px) 1fr;
+          gap: var(--space-12);
+          align-items: center;
+        }
+        .steps-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: var(--space-5);
+        }
+        .step-card {
+          text-align: center;
+          padding: var(--space-8) var(--space-6);
+        }
+        .step-num {
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
+          font-weight: 700;
+          letter-spacing: var(--tracking-wider);
+          background: var(--gradient-accent);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: var(--space-4);
+          display: block;
+        }
+        .showcase-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: var(--space-4);
+        }
+        .showcase-card {
+          border-radius: var(--radius-lg);
+          overflow: hidden;
+          transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+          cursor: pointer;
+          border: 1px solid var(--color-border);
+        }
+        .showcase-card:hover {
+          box-shadow: var(--shadow-lg);
+        }
+        .input-wrap {
+          display: flex;
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          border: 1px solid var(--color-border);
+          transition: border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
+          max-width: 420px;
+        }
+        .input-wrap:focus-within {
+          border-color: var(--color-border-focus);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        .section {
+          position: relative;
+          z-index: 10;
+          padding: var(--space-20) var(--content-padding);
+          max-width: var(--max-width);
+          margin: 0 auto;
+          width: 100%;
+        }
+        .section-title {
+          font-size: var(--text-xl);
+          font-weight: 800;
+          letter-spacing: var(--tracking-tight);
+          color: var(--color-text-primary);
+          text-align: center;
+          margin-bottom: var(--space-2);
+        }
+        .section-sub {
+          font-size: var(--text-sm);
+          color: var(--color-text-tertiary);
+          text-align: center;
+          margin-bottom: var(--space-12);
+        }
+        .separator {
+          height: 1px;
+          background: var(--color-border);
+          max-width: var(--max-width);
+          margin: 0 auto;
+          width: 90%;
+        }
+        .trust-item {
+          display: flex;
+          align-items: center;
+          gap: var(--space-1);
+        }
+        .cta-section {
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        @media (max-width: 768px) {
+          .hero-grid { grid-template-columns: 1fr !important; }
+          .hero-cards { display: none !important; }
+          .steps-grid { grid-template-columns: 1fr !important; }
+          .showcase-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .hero-headline { font-size: var(--text-3xl) !important; }
+        }
+        @media (max-width: 480px) {
+          .showcase-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+
+      <div className="g-bg-grid" />
+      <div className="g-bg-glow g-bg-glow-1" />
+      <div className="g-bg-glow g-bg-glow-2" />
+
+      {/* ─── NAVBAR ─── */}
+      <nav className="g-nav">
+        <div className="g-nav-logo" onClick={() => router.push('/')}>
+          <Logo />
+          <div>
+            <div className="g-nav-brand">GROOPIK</div>
+            <div className="g-nav-tagline">Collect every moment</div>
+          </div>
+        </div>
+        <div className="g-nav-actions">
+          <button className="g-btn g-btn-ghost g-hide-mobile" onClick={() => router.push('/join')}>Join Event</button>
+          <button className="g-btn g-btn-primary" onClick={() => document.getElementById('hero-input')?.focus()}>Create Event</button>
         </div>
       </nav>
 
-      {!eventCode ? (
-        <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'grid', gridTemplateColumns: 'min(460px, 100%) 1fr', alignItems: 'center', padding: '0 clamp(20px, 5vw, 48px)', gap: 0, maxWidth: 1200, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-
-          {/* Left */}
-          <div style={{ paddingRight: 48, opacity: 0, animation: 'fadeUp 0.6s ease 0.1s forwards' }}>
-
-            {/* Badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.16)', borderRadius: 100, padding: '5px 14px', marginBottom: 28 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', animation: 'blink 2s infinite', flexShrink: 0, boxShadow: '0 0 5px #3b82f6' }} />
-              <span style={{ fontSize: 10, color: 'rgba(100,160,255,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, whiteSpace: 'nowrap' }}>Free · No account needed</span>
+      {/* ═══════════════════════════════════
+          SECTION 1: HERO — The Emotional Hook
+          ═══════════════════════════════════ */}
+      <section className="section" style={{ paddingTop: 'var(--space-16)', paddingBottom: 'var(--space-16)' }}>
+        <div className="hero-grid">
+          {/* Left: Content */}
+          <div className="g-animate-in">
+            <div className="g-badge g-badge-live" style={{ marginBottom: 'var(--space-8)' }}>
+              Free · No account needed
             </div>
 
-            {/* Headline */}
-            <h1 style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.05em', color: 'white', lineHeight: 1.02, margin: '0 0 20px' }}>
+            <h1 className="hero-headline">
               The photos you<br />almost never got.
             </h1>
 
-            {/* Sub */}
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.38)', lineHeight: 1.85, margin: '0 0 36px', maxWidth: 360 }}>
-              Create an event. Share the link.<br />Everyone uploads. One gallery — yours to keep.
+            <p style={{ fontSize: 'var(--text-base)', color: 'var(--color-text-secondary)', lineHeight: 'var(--leading-normal)', margin: '0 0 var(--space-10)', maxWidth: 380 }}>
+              Create an event. Share the link.<br />
+              Everyone uploads. One gallery — yours to keep.
             </p>
 
-            {/* Input label */}
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>What are you celebrating?</div>
-
-            {/* Input + button */}
-            <div id="inputWrap" style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', transition: 'border-color 0.2s', maxWidth: 400 }}>
+            <span className="g-label">What are you celebrating?</span>
+            <div className="input-wrap">
               <input
+                id="hero-input"
+                className="g-input"
                 placeholder="Manali Trip, Birthday Photos..."
                 value={eventName}
                 onChange={e => setEventName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && createEvent()}
-                onFocus={e => { (e.target.parentElement as HTMLElement).style.borderColor = 'rgba(59,130,246,0.4)' }}
-                onBlur={e => { (e.target.parentElement as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)' }}
-                style={{ flex: 1, padding: '14px 18px', background: 'rgba(255,255,255,0.03)', border: 'none', color: 'white', fontSize: 13, fontFamily: 'inherit', minWidth: 0 }}
+                style={{ border: 'none', borderRadius: 0, background: 'transparent', flex: 1 }}
               />
               <button
+                className="g-btn g-btn-primary"
                 onClick={createEvent}
                 disabled={loading || !eventName.trim()}
-                style={{ background: eventName.trim() ? '#3b82f6' : 'rgba(255,255,255,0.05)', border: 'none', borderLeft: '1px solid rgba(255,255,255,0.08)', color: eventName.trim() ? 'white' : 'rgba(255,255,255,0.25)', padding: '14px 20px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: eventName.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+                style={{ borderRadius: 0, padding: 'var(--space-3) var(--space-5)', borderLeft: '1px solid var(--color-border)' }}
+              >
                 {loading ? 'Creating...' : 'Create →'}
               </button>
             </div>
 
-            {/* Trust row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 18, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', marginTop: 'var(--space-5)', flexWrap: 'wrap' }}>
               {['No account', 'Free forever', 'Share via QR'].map(t => (
-                <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <svg width="13" height="13" viewBox="0 0 13 13">
-                    <circle cx="6.5" cy="6.5" r="5.5" fill="none" stroke="rgba(59,130,246,0.35)" strokeWidth="1"/>
-                    <path d="M4,6.5 L5.5,8 L9,5" stroke="#3b82f6" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <div key={t} className="trust-item">
+                  <svg width="14" height="14" viewBox="0 0 14 14">
+                    <circle cx="7" cy="7" r="6" fill="none" stroke="var(--color-accent)" strokeWidth="1" opacity="0.4"/>
+                    <path d="M4.5,7 L6,8.5 L9.5,5.5" stroke="var(--color-accent)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>{t}</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-tertiary)' }}>{t}</span>
                 </div>
               ))}
-              <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.08)' }} />
-              <span style={{ fontSize: 11, color: 'rgba(59,130,246,0.6)', animation: 'countPulse 3s ease-in-out infinite' }}>
+              <span style={{ width: 1, height: 12, background: 'var(--color-border)', display: 'inline-block' }} />
+              <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-accent-light)', animation: 'g-count-pulse 3s ease-in-out infinite' }}>
                 {photoCount.toLocaleString()} photos shared today
               </span>
             </div>
           </div>
 
-          {/* Right: cards */}
-          <div style={{ opacity: 0, animation: 'fadeUp 0.6s ease 0.3s forwards' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, maxWidth: 420, margin: '0 auto' }}>
-              {cards.map((card, i) => (
-                <div key={i} style={cardStyle} onMouseMove={tiltCard} onMouseLeave={resetCard}>
-                  <div style={{ overflow: 'hidden' }}>
-                    {card.scene}
-                  </div>
-                  <div style={{ background: '#0d1421', borderTop: '1px solid rgba(59,130,246,0.08)', padding: '9px 11px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Right: Event Cards */}
+          <div className="hero-cards g-animate-in g-animate-in-delay-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', maxWidth: 420, margin: '0 auto' }}>
+              {cards.slice(0, 4).map((card, i) => (
+                <div key={i} className="showcase-card" onMouseMove={tiltCard} onMouseLeave={resetCard}>
+                  <div style={{ overflow: 'hidden' }}>{card.scene}</div>
+                  <div style={{ background: 'var(--color-bg-elevated)', borderTop: '1px solid var(--color-border)', padding: 'var(--space-2) var(--space-3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.88)' }}>{card.title}</div>
-                      <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', marginTop: 1 }}>{card.sub}</div>
+                      <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>{card.title}</div>
+                      <div style={{ fontSize: '0.5rem', color: 'var(--color-text-tertiary)', marginTop: 1 }}>{card.sub}</div>
                     </div>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: card.dot, boxShadow: `0 0 5px ${card.dot}`, flexShrink: 0 }} />
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: card.dot, boxShadow: `0 0 6px ${card.dot}`, flexShrink: 0 }} />
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      ) : (
-    <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center', animation: 'fadeUp 0.6s ease forwards' }}>
-      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Event ready</p>
-      <h2 style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.04em', color: 'white', marginBottom: 32 }}>{eventName}</h2>
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, width: '100%', maxWidth: 600, marginBottom: 20 }}>
+      <div className="separator" />
 
-        {/* QR Code */}
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>Scan to join</p>
-          <div style={{ background: 'white', padding: 12, borderRadius: 12 }}>
-            <QRCodeSVG
-              value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join?code=${eventCode}`}
-              size={148}
-              bgColor="white"
-              fgColor="#080c14"
-              level="M"
-            />
-          </div>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: 0 }}>Point camera to join instantly</p>
+      {/* ═══════════════════════════════════
+          SECTION 2: HOW IT WORKS — The Solution
+          ═══════════════════════════════════ */}
+      <section className="section">
+        <div className="g-animate-in">
+          <div className="section-title">Three steps. Every photo.</div>
+          <div className="section-sub">No apps to install. No accounts to create. Just photos.</div>
         </div>
 
-      {/* Code + actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 16, padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.2em', textTransform: 'uppercase', margin: 0 }}>Join code</p>
-          <div style={{ fontSize: 44, fontWeight: 900, letterSpacing: '0.12em', color: 'white', fontFamily: 'monospace' }}>{eventCode}</div>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)', margin: 0 }}>Type this at groopik.app/join</p>
-        </div>
-
-        <button onClick={copyLink} style={{ width: '100%', padding: 13, background: copied ? 'rgba(74,222,128,0.1)' : '#3b82f6', border: copied ? '1px solid rgba(74,222,128,0.3)' : 'none', color: copied ? '#4ade80' : 'white', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 8, transition: 'all 0.2s' }}>
-          {copied ? '✓ Link Copied' : 'Copy Join Link'}
-        </button>
-
-        <button onClick={() => router.push(`/event/${eventId}?name=Host&token=host_${eventId}`)} style={{ width: '100%', padding: 13, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'white', fontWeight: 800, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit', borderRadius: 8 }}>
-          Open My Event
-        </button>
-
-        <button onClick={() => { setEventCode(''); setEventName(''); setEventId('') }} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.15)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-          Create another event
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-      {/* Footer */}
-      <div style={{ position: 'relative', zIndex: 10, borderTop: '1px solid rgba(255,255,255,0.05)', padding: '14px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          {['No install', 'Instant gallery', 'Share via QR'].map(t => (
-            <span key={t} style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{t}</span>
+        <div className="steps-grid">
+          {steps.map((step, i) => (
+            <div key={i} className={`g-card step-card g-animate-in g-animate-in-delay-${i + 1}`}>
+              <span className="step-num">{step.num}</span>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-5)' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 'var(--radius-md)', background: 'var(--color-accent-dim)', border: '1px solid var(--color-accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {step.icon}
+                </div>
+              </div>
+              <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>{step.title}</h3>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', lineHeight: 'var(--leading-normal)' }}>{step.desc}</p>
+            </div>
           ))}
-          <div style={{ width: 1, height: 12, background: 'rgba(255,255,255,0.08)' }} />
-          <span onClick={() => router.push('/terms')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}>Terms</span>
-          <span onClick={() => router.push('/privacy')} style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')} onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}>Privacy</span>
         </div>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>© 2026 Groopik</span>
-      </div>
+      </section>
+
+      <div className="separator" />
+
+      {/* ═══════════════════════════════════
+          SECTION 3: SHOWCASE — Social Proof
+          ═══════════════════════════════════ */}
+      <section className="section">
+        <div className="g-animate-in">
+          <div className="section-title">Moments people collected</div>
+          <div className="section-sub">Real events. Real memories. All in one place.</div>
+        </div>
+
+        <div className="showcase-grid g-animate-in g-animate-in-delay-1">
+          {cards.map((card, i) => (
+            <div key={i} className="showcase-card" onMouseMove={tiltCard} onMouseLeave={resetCard}>
+              <div style={{ overflow: 'hidden' }}>{card.scene}</div>
+              <div style={{ background: 'var(--color-bg-elevated)', borderTop: '1px solid var(--color-border)', padding: 'var(--space-3) var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--color-text-primary)' }}>{card.title}</div>
+                  <div style={{ fontSize: '0.5625rem', color: 'var(--color-text-tertiary)', marginTop: 2 }}>{card.sub}</div>
+                </div>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: card.dot, boxShadow: `0 0 6px ${card.dot}`, flexShrink: 0 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="separator" />
+
+      {/* ═══════════════════════════════════
+          SECTION 4: FINAL CTA — Close the Loop
+          ═══════════════════════════════════ */}
+      <section className="section cta-section">
+        <div className="g-animate-in">
+          <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, letterSpacing: 'var(--tracking-tight)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)' }}>
+            Ready to collect your moments?
+          </h2>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-8)' }}>
+            Start for free. No sign-up required.
+          </p>
+          <div className="input-wrap" style={{ margin: '0 auto' }}>
+            <input
+              className="g-input"
+              placeholder="Name your event..."
+              value={eventName}
+              onChange={e => setEventName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && createEvent()}
+              style={{ border: 'none', borderRadius: 0, background: 'transparent', flex: 1 }}
+            />
+            <button
+              className="g-btn g-btn-primary"
+              onClick={createEvent}
+              disabled={loading || !eventName.trim()}
+              style={{ borderRadius: 0, padding: 'var(--space-3) var(--space-5)', borderLeft: '1px solid var(--color-border)' }}
+            >
+              {loading ? 'Creating...' : 'Create →'}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FOOTER ─── */}
+      <footer className="g-footer">
+        <div className="g-footer-links">
+          <span className="g-footer-link g-hide-mobile">No install</span>
+          <span className="g-footer-link g-hide-mobile">Instant gallery</span>
+          <span className="g-footer-link g-hide-mobile">Share via QR</span>
+          <span style={{ width: 1, height: 12, background: 'var(--color-border)', display: 'inline-block' }} className="g-hide-mobile" />
+          <span className="g-footer-link" onClick={() => router.push('/terms')}>Terms</span>
+          <span className="g-footer-link" onClick={() => router.push('/privacy')}>Privacy</span>
+        </div>
+        <span className="g-footer-copy">© 2026 Groopik</span>
+      </footer>
     </main>
   )
 }
