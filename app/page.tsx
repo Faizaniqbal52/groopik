@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
+import { DottedSurface } from '@/components/ui/dotted-surface'
 
 export default function Home() {
   const [eventName, setEventName] = useState('')
@@ -93,7 +94,7 @@ export default function Home() {
     return (
       <main className="page-root">
         <style>{pageStyles}</style>
-        <div className="g-bg-grid" />
+        <DottedSurface dotColor={[120, 120, 180]} surfaceOpacity={0.18} dotSize={4} />
         <div className="g-bg-glow g-bg-glow-1" />
         <div className="g-bg-glow g-bg-glow-2" />
 
@@ -157,6 +158,7 @@ export default function Home() {
   return (
     <main className="page-root">
       <style>{pageStyles}</style>
+      <DottedSurface dotColor={[120, 120, 180]} surfaceOpacity={0.18} dotSize={4} />
 
       {/* NAV — with social proof */}
       <nav className="g-nav">
