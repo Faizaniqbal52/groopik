@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 
@@ -11,6 +11,7 @@ export default function Home() {
   const [eventId, setEventId] = useState('')
   const [copied, setCopied] = useState(false)
   const [photoCount, setPhotoCount] = useState(2847)
+  const [scrollY, setScrollY] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -19,6 +20,22 @@ export default function Home() {
     }, 4000)
     return () => clearInterval(interval)
   }, [])
+
+  // Scroll-triggered animations via IntersectionObserver
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+          }
+        })
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+    )
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [eventCode])
 
   const createEvent = async () => {
     if (!eventName.trim()) return
@@ -50,12 +67,12 @@ export default function Home() {
   }
 
   const cards = [
-    { title: 'Manali Trip', sub: '47 photos · 8 people', img: '/manali.png' },
-    { title: 'The Wedding', sub: '213 photos · 34 people', img: '/wedding.png' },
-    { title: 'Mood Fest', sub: '156 photos · 61 people', img: '/festival.png' },
-    { title: 'Goa Trip', sub: '134 photos · 12 people', img: '/goa.png' },
-    { title: 'Birthday Bash', sub: '72 photos · 18 people', img: '/birthday.png' },
-    { title: 'NYE 2024', sub: '89 photos · 22 people', img: '/nye.png' },
+    { title: 'Manali Trip', sub: '47 photos from 8 friends', img: '/manali.png' },
+    { title: 'The Wedding', sub: '213 moments by 34 guests', img: '/wedding.png' },
+    { title: 'Mood Fest', sub: '156 shots from 61 people', img: '/festival.png' },
+    { title: 'Goa Trip', sub: '134 memories by 12 friends', img: '/goa.png' },
+    { title: 'Birthday Bash', sub: '72 photos from 18 people', img: '/birthday.png' },
+    { title: 'NYE 2024', sub: '89 moments by 22 people', img: '/nye.png' },
   ]
 
   const Logo = () => (
@@ -90,30 +107,21 @@ export default function Home() {
           </div>
         </nav>
 
-        <div className="success-container g-animate-in">
-          <div className="success-inner">
+        <div className="success-container">
+          <div className="success-inner reveal is-visible">
             <div className="g-badge" style={{ marginBottom: 24 }}>
               <div className="live-dot live-dot--green" />
-              Event ready
+              Event created
             </div>
-
             <h1 className="success-title">{eventName}</h1>
-
             <div className="success-grid">
               <div className="g-card qr-card">
                 <span className="g-label" style={{ marginBottom: 0 }}>Scan to join</span>
                 <div className="qr-wrap">
-                  <QRCodeSVG
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join?code=${eventCode}`}
-                    size={148}
-                    bgColor="white"
-                    fgColor="#06080d"
-                    level="M"
-                  />
+                  <QRCodeSVG value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join?code=${eventCode}`} size={148} bgColor="white" fgColor="#06080d" level="M" />
                 </div>
                 <span className="text-muted">Point camera to join instantly</span>
               </div>
-
               <div className="success-actions">
                 <div className="g-card g-card-accent code-card">
                   <span className="g-label" style={{ marginBottom: 0 }}>Join code</span>
@@ -128,7 +136,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-
             <button className="g-btn g-btn-ghost" onClick={() => { setEventCode(''); setEventName(''); setEventId('') }} style={{ marginTop: 24 }}>
               Create another event
             </button>
@@ -150,11 +157,8 @@ export default function Home() {
   return (
     <main className="page-root">
       <style>{pageStyles}</style>
-      <div className="g-bg-grid" />
-      <div className="g-bg-glow g-bg-glow-1" />
-      <div className="g-bg-glow g-bg-glow-2" />
 
-      {/* NAV */}
+      {/* NAV — with social proof */}
       <nav className="g-nav">
         <div className="g-nav-logo" onClick={() => router.push('/')}>
           <Logo />
@@ -164,6 +168,10 @@ export default function Home() {
           </div>
         </div>
         <div className="g-nav-actions">
+          <div className="nav-stat g-hide-mobile">
+            <div className="nav-stat-dot" />
+            <span>{photoCount.toLocaleString()}+ photos shared</span>
+          </div>
           <button className="g-btn g-btn-ghost g-hide-mobile" onClick={() => router.push('/join')}>Join Event</button>
           <button className="g-btn g-btn-primary" onClick={() => document.getElementById('hero-input')?.focus()}>Create Event</button>
         </div>
@@ -171,60 +179,68 @@ export default function Home() {
 
       {/* ═══ HERO ═══ */}
       <section className="hero">
-        {/* Background image */}
-        <div className="hero-bg">
-          <img src="/hero-bg.png" alt="" />
-          <div className="hero-bg-overlay" />
+        {/* Floating photos */}
+        <div className="floating-photos" aria-hidden="true">
+          <div className="float-photo float-photo--1"><img src="/wedding.png" alt="" /></div>
+          <div className="float-photo float-photo--2"><img src="/manali.png" alt="" /></div>
+          <div className="float-photo float-photo--3"><img src="/festival.png" alt="" /></div>
+          <div className="float-photo float-photo--4"><img src="/birthday.png" alt="" /></div>
+          <div className="float-photo float-photo--5"><img src="/goa.png" alt="" /></div>
+          <div className="float-photo float-photo--6"><img src="/nye.png" alt="" /></div>
         </div>
 
-        <div className="hero-content g-animate-in">
-          <div className="g-badge g-badge-live" style={{ marginBottom: 28 }}>
-            Free · No account needed
+        {/* Ambient glow */}
+        <div className="hero-glow hero-glow--1" />
+        <div className="hero-glow hero-glow--2" />
+
+        <div className="hero-content">
+          <div className="hero-badge reveal is-visible">
+            <div className="g-badge g-badge-live">Free · No account needed</div>
           </div>
 
-          <h1 className="hero-headline">
-            The photos you<br />almost <span className="accent-word">never</span> got.
+          <h1 className="hero-headline reveal is-visible">
+            The photos you<br />almost <em>never</em> got.
           </h1>
 
-          <p className="hero-sub">
-            Create an event. Share the link.<br />
-            Everyone uploads. One gallery — yours to keep.
+          <p className="hero-sub reveal is-visible">
+            Create an event. Share the link. Everyone uploads.<br />
+            One gallery — yours to keep.
           </p>
 
-          {/* BIG CTA */}
-          <div className="cta-card">
-            <span className="g-label">What are you celebrating?</span>
-            <div className="cta-input-wrap">
-              <input
-                id="hero-input"
-                className="cta-input"
-                placeholder="Manali Trip, Birthday Photos..."
-                value={eventName}
-                onChange={e => setEventName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && createEvent()}
-              />
-              <button
-                className="g-btn g-btn-primary g-btn-lg cta-btn"
-                onClick={createEvent}
-                disabled={loading || !eventName.trim()}
-              >
-                {loading ? (
-                  <><svg width="14" height="14" viewBox="0 0 14 14" style={{ animation: 'g-spin 1s linear infinite' }}><circle cx="7" cy="7" r="5.5" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><path d="M7 1.5 A5.5 5.5 0 0 1 12.5 7" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg> Creating...</>
-                ) : 'Create Event →'}
-              </button>
+          {/* CTA */}
+          <div className="cta-wrap reveal is-visible">
+            <div className="cta-card">
+              <span className="g-label">What are you celebrating?</span>
+              <div className="cta-input-wrap">
+                <input
+                  id="hero-input"
+                  className="cta-input"
+                  placeholder="Manali Trip, Birthday Photos..."
+                  value={eventName}
+                  onChange={e => setEventName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && createEvent()}
+                />
+                <button
+                  className="cta-btn"
+                  onClick={createEvent}
+                  disabled={loading || !eventName.trim()}
+                >
+                  {loading ? (
+                    <><svg width="16" height="16" viewBox="0 0 16 16" className="spin-icon"><circle cx="8" cy="8" r="6" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"/><path d="M8 2 A6 6 0 0 1 14 8" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>Creating...</>
+                  ) : (
+                    <>Create Event <span className="cta-arrow">→</span></>
+                  )}
+                </button>
+              </div>
+              <div className="trust-row">
+                {['No account needed', 'Free forever', 'Share via QR'].map(t => (
+                  <div key={t} className="trust-item">
+                    <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="var(--color-accent)" strokeWidth="1" opacity="0.4"/><path d="M4.5,7 L6,8.5 L9.5,5.5" stroke="var(--color-accent-light)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <span>{t}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="trust-row">
-              {['No account needed', 'Free forever', 'Share via QR'].map(t => (
-                <div key={t} className="trust-item">
-                  <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="var(--color-accent)" strokeWidth="1" opacity="0.4"/><path d="M4.5,7 L6,8.5 L9.5,5.5" stroke="var(--color-accent-light)" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <span>{t}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="photo-counter">
-            {photoCount.toLocaleString()} photos shared today
           </div>
         </div>
       </section>
@@ -232,34 +248,39 @@ export default function Home() {
       {/* ═══ HOW IT WORKS ═══ */}
       <section className="section section--alt">
         <div className="section-inner">
-          <h2 className="section-title g-animate-in">How it works</h2>
-          <p className="section-sub g-animate-in">Three steps. No apps. No sign-ups.</p>
+          <div className="reveal">
+            <p className="section-eyebrow">How it works</p>
+            <h2 className="section-title">Three steps.<br /><em>Every</em> photo.</h2>
+          </div>
 
-          <div className="steps-grid">
+          <div className="flow">
             {[
               {
                 num: '01', title: 'Create an event',
-                desc: 'Name your event — wedding, trip, party, reunion. Takes 3 seconds.',
-                icon: <><rect x="4" y="6" width="24" height="20" rx="4" stroke="currentColor" strokeWidth="1.5"/><circle cx="16" cy="16" r="5" stroke="currentColor" strokeWidth="1.5"/><circle cx="16" cy="16" r="2" fill="currentColor"/><circle cx="23" cy="10" r="1.5" fill="currentColor" opacity="0.5"/></>,
+                desc: 'Name your wedding, trip, party — anything. It takes 3 seconds. No sign-up needed.',
+                img: '/manali.png',
               },
               {
                 num: '02', title: 'Share the link',
-                desc: 'Send a QR code or link to everyone. They open it on any phone — no download needed.',
-                icon: <><path d="M12 16h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M18 12l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><rect x="4" y="8" width="10" height="16" rx="3" stroke="currentColor" strokeWidth="1.5"/><rect x="18" y="8" width="10" height="16" rx="3" stroke="currentColor" strokeWidth="1.5"/></>,
+                desc: 'Send a QR code or link to everyone. They tap it on any phone — no app to download.',
+                img: '/wedding.png',
               },
               {
                 num: '03', title: 'Collect every photo',
-                desc: 'Everyone uploads to one gallery. Download all photos anytime, for free.',
-                icon: <><rect x="3" y="5" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="17" y="5" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="17" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="17" y="17" width="12" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/></>,
+                desc: 'Everyone uploads to one gallery. Browse, download, or save them all — forever free.',
+                img: '/festival.png',
               },
             ].map((step, i) => (
-              <div key={i} className={`step-card g-card g-animate-in g-animate-in-delay-${i + 1}`}>
-                <span className="step-num">{step.num}</span>
-                <div className="step-icon">
-                  <svg width="28" height="28" viewBox="0 0 32 32" fill="none">{step.icon}</svg>
+              <div key={i} className={`flow-step reveal`} style={{ animationDelay: `${i * 150}ms` }}>
+                <div className="flow-img-wrap">
+                  <img src={step.img} alt={step.title} className="flow-img" />
+                  <div className="flow-img-overlay" />
+                  <span className="flow-num">{step.num}</span>
                 </div>
-                <h3 className="step-title">{step.title}</h3>
-                <p className="step-desc">{step.desc}</p>
+                <div className="flow-text">
+                  <h3 className="flow-title">{step.title}</h3>
+                  <p className="flow-desc">{step.desc}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -269,18 +290,19 @@ export default function Home() {
       {/* ═══ SHOWCASE ═══ */}
       <section className="section">
         <div className="section-inner">
-          <h2 className="section-title g-animate-in">Moments people collected</h2>
-          <p className="section-sub g-animate-in">Real events. Real memories. All in one place.</p>
+          <div className="reveal">
+            <p className="section-eyebrow">Real events</p>
+            <h2 className="section-title">Moments people <em>collected</em></h2>
+            <p className="section-sub">Every card is a real event. Every photo is a real memory.</p>
+          </div>
 
-          <div className="showcase-grid g-animate-in g-animate-in-delay-1">
+          <div className="showcase-grid">
             {cards.map((card, i) => (
-              <div key={i} className="showcase-card">
+              <div key={i} className="showcase-card reveal" style={{ animationDelay: `${i * 80}ms` }}>
                 <div className="showcase-img-wrap">
                   <img src={card.img} alt={card.title} className="showcase-img" loading="lazy" />
-                  <div className="showcase-overlay" />
-                </div>
-                <div className="showcase-info">
-                  <div>
+                  <div className="showcase-img-overlay" />
+                  <div className="showcase-label">
                     <div className="showcase-title">{card.title}</div>
                     <div className="showcase-sub">{card.sub}</div>
                   </div>
@@ -293,29 +315,18 @@ export default function Home() {
 
       {/* ═══ FINAL CTA ═══ */}
       <section className="section section--cta">
-        <div className="section-inner cta-bottom g-animate-in">
-          <h2 className="cta-headline">Ready to collect your moments?</h2>
-          <p className="section-sub">Start for free. No sign-up required.</p>
+        <div className="section-inner cta-bottom reveal">
+          <h2 className="cta-headline">Ready to collect<br />your <em>moments</em>?</h2>
+          <p className="section-sub" style={{ marginBottom: 32 }}>Start for free. No sign-up required.</p>
           <div className="cta-input-wrap cta-input-wrap--centered">
-            <input
-              className="cta-input"
-              placeholder="Name your event..."
-              value={eventName}
-              onChange={e => setEventName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createEvent()}
-            />
-            <button
-              className="g-btn g-btn-primary g-btn-lg cta-btn"
-              onClick={createEvent}
-              disabled={loading || !eventName.trim()}
-            >
-              {loading ? 'Creating...' : 'Create →'}
+            <input className="cta-input" placeholder="Name your event..." value={eventName} onChange={e => setEventName(e.target.value)} onKeyDown={e => e.key === 'Enter' && createEvent()} />
+            <button className="cta-btn" onClick={createEvent} disabled={loading || !eventName.trim()}>
+              {loading ? 'Creating...' : 'Create Event →'}
             </button>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="g-footer">
         <div className="g-footer-links">
           <span className="g-footer-link" onClick={() => router.push('/terms')}>Terms</span>
@@ -327,7 +338,6 @@ export default function Home() {
   )
 }
 
-// ─── STYLES ───
 const pageStyles = `
   .page-root {
     background: var(--color-bg-primary);
@@ -335,55 +345,134 @@ const pageStyles = `
     display: flex;
     flex-direction: column;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
   }
 
-  /* ── Hero ── */
+  /* ── Scroll reveal ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Nav stat ── */
+  .nav-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--text-xs);
+    color: var(--color-text-tertiary);
+    font-weight: 500;
+    padding: 6px 14px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+  }
+  .nav-stat-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--color-success);
+    box-shadow: 0 0 6px var(--color-success);
+    animation: g-pulse 2s ease-in-out infinite;
+  }
+
+  /* ═══ HERO ═══ */
   .hero {
     position: relative;
     z-index: 10;
-    min-height: 92vh;
+    min-height: 94vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--space-12) var(--content-padding);
+    overflow: hidden;
   }
-  .hero-bg {
+
+  /* Floating polaroid photos */
+  .floating-photos {
     position: absolute;
     inset: 0;
     z-index: 0;
-    overflow: hidden;
+    pointer-events: none;
   }
-  .hero-bg img {
+  .float-photo {
+    position: absolute;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    border: 3px solid rgba(255,255,255,0.08);
+    opacity: 0;
+    animation: floatIn 1.2s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  .float-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.12;
-    filter: blur(2px);
+    display: block;
   }
-  .hero-bg-overlay {
+  .float-photo--1 { width: 180px; height: 130px; top: 8%; left: 3%; transform: rotate(-8deg); animation-delay: 0.3s; }
+  .float-photo--2 { width: 160px; height: 110px; top: 5%; right: 5%; transform: rotate(6deg); animation-delay: 0.5s; }
+  .float-photo--3 { width: 200px; height: 140px; bottom: 18%; left: 2%; transform: rotate(5deg); animation-delay: 0.7s; }
+  .float-photo--4 { width: 150px; height: 110px; bottom: 12%; right: 3%; transform: rotate(-7deg); animation-delay: 0.9s; }
+  .float-photo--5 { width: 130px; height: 95px; top: 40%; left: 6%; transform: rotate(-3deg); animation-delay: 0.6s; }
+  .float-photo--6 { width: 140px; height: 100px; top: 35%; right: 4%; transform: rotate(4deg); animation-delay: 0.8s; }
+
+  @keyframes floatIn {
+    from { opacity: 0; transform: translateY(40px) rotate(var(--r, 0deg)) scale(0.85); }
+    to { opacity: 0.35; transform: translateY(0) rotate(var(--r, 0deg)) scale(1); }
+  }
+  .float-photo--1 { --r: -8deg; }
+  .float-photo--2 { --r: 6deg; }
+  .float-photo--3 { --r: 5deg; }
+  .float-photo--4 { --r: -7deg; }
+  .float-photo--5 { --r: -3deg; }
+  .float-photo--6 { --r: 4deg; }
+
+  .hero-glow {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, var(--color-bg-primary) 0%, transparent 30%, transparent 70%, var(--color-bg-primary) 100%);
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(100px);
+    z-index: 0;
   }
+  .hero-glow--1 {
+    width: 600px; height: 600px;
+    top: -200px; right: -100px;
+    background: rgba(99,102,241,0.12);
+    animation: g-float 8s ease-in-out infinite;
+  }
+  .hero-glow--2 {
+    width: 500px; height: 500px;
+    bottom: -200px; left: -100px;
+    background: rgba(168,85,247,0.08);
+    animation: g-float 10s ease-in-out infinite reverse;
+  }
+
   .hero-content {
     position: relative;
     z-index: 2;
     text-align: center;
-    max-width: 680px;
+    max-width: 700px;
     width: 100%;
   }
+  .hero-badge { margin-bottom: 28px; }
+
   .hero-headline {
-    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 7vw, 4.5rem);
     font-weight: 900;
-    letter-spacing: -0.04em;
-    line-height: 1.05;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
     color: white;
-    margin: 0 0 var(--space-5);
+    margin: 0 0 var(--space-6);
   }
-  .accent-word {
-    color: var(--color-accent-light);
+  .hero-headline em {
     font-style: italic;
+    color: var(--color-accent-light);
   }
   .hero-sub {
     font-size: var(--text-lg);
@@ -391,29 +480,36 @@ const pageStyles = `
     color: var(--color-text-secondary);
     line-height: 1.7;
     margin: 0 0 var(--space-10);
+    letter-spacing: 0.01em;
   }
 
-  /* ── CTA Card ── */
+  /* ── CTA ── */
+  .cta-wrap { max-width: 520px; margin: 0 auto; width: 100%; }
   .cta-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-xl);
-    padding: var(--space-8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    padding: var(--space-6) var(--space-8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     text-align: left;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  }
+  .cta-card:hover {
+    border-color: rgba(99,102,241,0.2);
+    box-shadow: 0 0 40px rgba(99,102,241,0.06);
   }
   .cta-input-wrap {
     display: flex;
     border-radius: var(--radius-md);
     overflow: hidden;
     border: 1px solid var(--color-border);
-    transition: border-color var(--duration-normal) var(--ease-out), box-shadow var(--duration-normal) var(--ease-out);
+    transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
     background: rgba(0,0,0,0.3);
   }
   .cta-input-wrap:focus-within {
-    border-color: var(--color-border-focus);
-    box-shadow: 0 0 0 4px rgba(99,102,241,0.1), var(--shadow-glow);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12), 0 0 30px rgba(99,102,241,0.1);
   }
   .cta-input {
     flex: 1;
@@ -427,12 +523,52 @@ const pageStyles = `
   }
   .cta-input::placeholder { color: var(--color-text-tertiary); }
   .cta-input:focus { outline: none; }
+
   .cta-btn {
-    border-radius: 0 !important;
-    padding: var(--space-4) var(--space-6) !important;
-    border-left: 1px solid var(--color-border) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: var(--space-4) var(--space-6);
+    background: var(--gradient-accent);
+    border: none;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    color: white;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
     white-space: nowrap;
+    transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+    position: relative;
+    overflow: hidden;
   }
+  .cta-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+  .cta-btn:hover::before {
+    transform: translateX(100%);
+  }
+  .cta-btn:hover {
+    box-shadow: 0 0 24px rgba(99,102,241,0.3);
+  }
+  .cta-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .cta-btn:disabled:hover::before { transform: translateX(-100%); }
+  .cta-arrow {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  .cta-btn:hover .cta-arrow { transform: translateX(3px); }
+  .spin-icon { animation: g-spin 1s linear infinite; }
+
   .trust-row {
     display: flex;
     gap: var(--space-5);
@@ -442,27 +578,18 @@ const pageStyles = `
   .trust-item {
     display: flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: 5px;
   }
   .trust-item span {
     font-size: var(--text-xs);
     color: var(--color-text-tertiary);
-  }
-  .photo-counter {
-    margin-top: var(--space-6);
-    font-size: var(--text-xs);
-    color: var(--color-accent-light);
-    font-weight: 500;
-    letter-spacing: var(--tracking-wide);
-    opacity: 0.6;
-    animation: g-count-pulse 3s ease-in-out infinite;
   }
 
   /* ── Sections ── */
   .section {
     position: relative;
     z-index: 10;
-    padding: var(--space-20) var(--content-padding);
+    padding: 100px var(--content-padding);
   }
   .section--alt {
     background: var(--color-bg-elevated);
@@ -471,19 +598,35 @@ const pageStyles = `
   }
   .section--cta {
     border-top: 1px solid var(--color-border);
+    padding: 80px var(--content-padding);
   }
   .section-inner {
     max-width: var(--max-width);
     margin: 0 auto;
     width: 100%;
   }
+  .section-eyebrow {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--color-accent-light);
+    text-align: center;
+    margin-bottom: var(--space-3);
+  }
   .section-title {
-    font-size: var(--text-2xl);
-    font-weight: 800;
-    letter-spacing: var(--tracking-tight);
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 900;
+    letter-spacing: -0.02em;
     color: var(--color-text-primary);
     text-align: center;
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--space-3);
+    line-height: 1.15;
+  }
+  .section-title em {
+    font-style: italic;
+    color: var(--color-accent-light);
   }
   .section-sub {
     font-size: var(--text-sm);
@@ -493,49 +636,70 @@ const pageStyles = `
     margin-bottom: var(--space-12);
   }
 
-  /* ── Steps ── */
-  .steps-grid {
+  /* ── How it works: flow cards ── */
+  .flow {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-5);
+    gap: var(--space-6);
   }
-  .step-card {
-    text-align: center;
-    padding: var(--space-10) var(--space-6);
+  .flow-step {
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+    background: var(--color-bg-surface);
   }
-  .step-num {
+  .flow-step:hover {
+    border-color: var(--color-border-hover);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(99,102,241,0.05);
+  }
+  .flow-img-wrap {
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+  }
+  .flow-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.16,1,0.3,1);
+  }
+  .flow-step:hover .flow-img { transform: scale(1.06); }
+  .flow-img-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 40%, rgba(6,8,13,0.5) 100%);
+  }
+  .flow-num {
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-3);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     font-weight: 700;
-    letter-spacing: var(--tracking-wider);
-    color: var(--color-accent-light);
-    margin-bottom: var(--space-5);
-    display: block;
-    opacity: 0.6;
+    color: white;
+    background: rgba(99,102,241,0.7);
+    backdrop-filter: blur(8px);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    letter-spacing: var(--tracking-wide);
   }
-  .step-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-lg);
-    background: var(--color-accent-dim);
-    border: 1px solid var(--color-accent-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto var(--space-5);
-    color: var(--color-accent-light);
+  .flow-text {
+    padding: var(--space-6);
   }
-  .step-title {
-    font-size: var(--text-base);
+  .flow-title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--color-text-primary);
     margin-bottom: var(--space-2);
   }
-  .step-desc {
+  .flow-desc {
     font-size: var(--text-sm);
     font-weight: 300;
     color: var(--color-text-tertiary);
-    line-height: var(--leading-normal);
+    line-height: 1.65;
   }
 
   /* ── Showcase ── */
@@ -545,54 +709,56 @@ const pageStyles = `
     gap: var(--space-4);
   }
   .showcase-card {
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     overflow: hidden;
-    border: 1px solid var(--color-border);
     cursor: pointer;
-    transition: all var(--duration-normal) var(--ease-out);
+    transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
     position: relative;
+    border: 1px solid transparent;
   }
   .showcase-card:hover {
-    border-color: var(--color-border-hover);
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-4px);
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: var(--shadow-xl);
+    border-color: rgba(255,255,255,0.08);
   }
   .showcase-img-wrap {
     position: relative;
-    aspect-ratio: 16/10;
+    aspect-ratio: 4/3;
     overflow: hidden;
   }
   .showcase-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--duration-slow) var(--ease-out);
+    transition: transform 0.7s cubic-bezier(0.16,1,0.3,1);
   }
   .showcase-card:hover .showcase-img {
-    transform: scale(1.05);
+    transform: scale(1.08);
   }
-  .showcase-overlay {
+  .showcase-img-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(transparent 50%, rgba(6,8,13,0.7) 100%);
+    background: linear-gradient(transparent 30%, rgba(6,8,13,0.85) 100%);
   }
-  .showcase-info {
-    padding: var(--space-3) var(--space-4);
-    background: var(--color-bg-elevated);
-    border-top: 1px solid var(--color-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  .showcase-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--space-4) var(--space-5);
   }
   .showcase-title {
-    font-size: var(--text-sm);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
     font-weight: 700;
-    color: var(--color-text-primary);
+    color: white;
+    margin-bottom: 3px;
   }
   .showcase-sub {
     font-size: var(--text-xs);
-    color: var(--color-text-tertiary);
-    margin-top: 2px;
+    color: rgba(255,255,255,0.55);
+    font-weight: 300;
+    letter-spacing: 0.02em;
   }
 
   /* ── Bottom CTA ── */
@@ -603,11 +769,17 @@ const pageStyles = `
     align-items: center;
   }
   .cta-headline {
-    font-size: var(--text-2xl);
-    font-weight: 800;
-    letter-spacing: var(--tracking-tight);
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 900;
+    letter-spacing: -0.02em;
     color: white;
     margin-bottom: var(--space-3);
+    line-height: 1.15;
+  }
+  .cta-headline em {
+    font-style: italic;
+    color: var(--color-accent-light);
   }
   .cta-input-wrap--centered {
     max-width: 480px;
@@ -615,85 +787,30 @@ const pageStyles = `
   }
 
   /* ── Success ── */
-  .success-container {
-    position: relative;
-    z-index: 10;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-10) var(--content-padding);
-    text-align: center;
-  }
+  .success-container { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-10) var(--content-padding); text-align: center; }
   .success-inner { width: 100%; max-width: 640px; }
-  .success-title {
-    font-size: var(--text-3xl);
-    font-weight: 800;
-    letter-spacing: var(--tracking-tight);
-    color: white;
-    margin-bottom: var(--space-10);
-  }
-  .success-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-5);
-    margin-bottom: var(--space-5);
-  }
-  .qr-card {
-    padding: var(--space-8) var(--space-6);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-4);
-  }
-  .qr-wrap {
-    background: white;
-    padding: var(--space-3);
-    border-radius: var(--radius-md);
-  }
-  .text-muted {
-    font-size: var(--text-xs);
-    color: var(--color-text-tertiary);
-  }
-  .success-actions {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-  .code-card {
-    padding: var(--space-6);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-  }
-  .code-display {
-    font-size: var(--text-3xl);
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    color: white;
-    font-family: var(--font-mono);
-  }
-  .full-btn {
-    width: 100%;
-    justify-content: center;
-    padding: var(--space-3) var(--space-4) !important;
-  }
+  .success-title { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 900; letter-spacing: -0.02em; color: white; margin-bottom: var(--space-10); }
+  .success-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); margin-bottom: var(--space-5); }
+  .qr-card { padding: var(--space-8) var(--space-6); display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+  .qr-wrap { background: white; padding: var(--space-3); border-radius: var(--radius-md); }
+  .text-muted { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .success-actions { display: flex; flex-direction: column; gap: var(--space-3); }
+  .code-card { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); }
+  .code-display { font-size: var(--text-3xl); font-weight: 900; letter-spacing: 0.12em; color: white; font-family: var(--font-mono); }
+  .full-btn { width: 100%; justify-content: center; padding: var(--space-3) var(--space-4) !important; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; }
   .live-dot--green { background: var(--color-success); box-shadow: 0 0 8px var(--color-success); }
 
   /* ── Responsive ── */
   @media (max-width: 768px) {
     .hero { min-height: auto; padding: var(--space-16) var(--content-padding); }
+    .floating-photos { display: none; }
     .hero-headline { font-size: 2.25rem !important; }
-    .steps-grid { grid-template-columns: 1fr !important; }
+    .flow { grid-template-columns: 1fr !important; }
     .showcase-grid { grid-template-columns: repeat(2, 1fr) !important; }
     .success-grid { grid-template-columns: 1fr !important; }
     .cta-card { padding: var(--space-5); }
-    .cta-btn { font-size: 0.625rem !important; padding: var(--space-3) var(--space-4) !important; }
+    .section { padding: 60px var(--content-padding); }
   }
   @media (max-width: 480px) {
     .showcase-grid { grid-template-columns: 1fr !important; }
