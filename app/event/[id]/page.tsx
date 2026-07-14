@@ -314,7 +314,7 @@ function EventPageContent() {
                   Upload photos
                 </>
               )}
-              <input type="file" accept="image/*" multiple onChange={uploadPhotos} disabled={uploading} />
+              <input id="upload-input-top" type="file" accept="image/*" multiple onChange={uploadPhotos} disabled={uploading} />
             </label>
 
             {uploading && (
@@ -361,7 +361,7 @@ function EventPageContent() {
         {/* ─── Gallery ─── */}
         {photos.length === 0 ? (
           <div className="g-animate-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
-            <label className="drag-zone" style={{ width: '100%', maxWidth: 500 }}>
+            <label className="drag-zone" htmlFor="upload-input-empty" style={{ width: '100%', maxWidth: 500 }}>
               <div className="drag-zone-icon">
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                   <rect x="3" y="6" width="26" height="20" rx="4" stroke="currentColor" strokeWidth="1.5"/>
@@ -377,7 +377,7 @@ function EventPageContent() {
                 </svg>
                 Upload photos
               </span>
-              <input type="file" accept="image/*" multiple onChange={uploadPhotos} />
+              <input id="upload-input-empty" type="file" accept="image/*" multiple onChange={uploadPhotos} />
             </label>
           </div>
         ) : (
