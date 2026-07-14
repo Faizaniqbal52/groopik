@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (eventId) {
       const manifest = await getJson(`${eventId}/_manifest.json`)
       if (manifest) {
-        manifest.photos = manifest.photos.filter((p: any) =>
+        manifest.photos = manifest.photos.filter((p: { id?: string; storage_path?: string }) =>
           photoId ? p.id !== photoId : p.storage_path !== filePath
         )
         await putJson(`${eventId}/_manifest.json`, manifest)
